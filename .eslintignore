@@ -3,3 +3,4 @@ build
 public/build
 */*.yml
 .shopify
+extensions/product-compare/assets/product-compare.js

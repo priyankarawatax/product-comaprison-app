@@ -1,0 +1,7 @@
+ALTER TABLE `stores`
+  ADD COLUMN `smartBadgesEnabled` BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN `badgeLowestPrice` BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN `badgeBestRated` BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN `badgeMostPopular` BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN `badgeBestValue` BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN `maxBadgesPerProduct` INTEGER NOT NULL DEFAULT 2;

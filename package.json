@@ -2,7 +2,7 @@
   "name": "ai-visualization",
   "private": true,
   "scripts": {
-    "build": "react-router build",
+    "build": "npm run build:theme && react-router build",
     "dev": "shopify app dev",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
@@ -17,7 +17,12 @@
     "prisma": "prisma",
     "graphql-codegen": "graphql-codegen",
     "vite": "vite",
-    "typecheck": "react-router typegen && tsc --noEmit"
+    "typecheck": "react-router typegen && tsc --noEmit",
+    "test:billing": "node --import tsx --test tests/billing.test.ts",
+    "build:theme": "esbuild theme-src/product-compare/product-compare.js theme-src/product-compare/product-compare-api.js theme-src/product-compare/product-compare-share.js theme-src/product-compare/product-compare-metafields.js theme-src/product-compare/product-compare-analytics.js theme-src/product-compare/product-compare-smart-badges.js theme-src/product-finder/product-finder.js theme-src/product-finder/product-finder-results.js --minify --format=esm --entry-names=[name] --outdir=extensions/product-compare/assets",
+    "test:theme": "npm run build:theme && node --test tests/theme-embed.test.mjs tests/theme-liquid.test.mjs",
+    "predev": "npm run build:theme",
+    "predeploy": "npm run build:theme"
   },
   "type": "module",
   "engines": {
@@ -48,6 +53,7 @@
     "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
+    "esbuild": "^0.28.2",
     "eslint": "^8.57.1",
     "eslint-import-resolver-typescript": "^3.10.1",
     "eslint-plugin-import": "^2.32.0",
@@ -55,7 +61,10 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^4.6.2",
     "graphql-config": "^5.1.1",
+    "jsdom": "^30.1.2",
+    "liquidjs": "^10.30.0",
     "prettier": "^3.6.2",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vite": "^6.3.6"
   },

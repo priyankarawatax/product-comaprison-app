@@ -1,0 +1,18 @@
+{% comment %}Only merchant-selected, enabled product fields are published.{% endcomment %}
+{
+  {% assign plan_entitlements = app.metafields.comparison.plan_entitlements.value %}
+  {% assign comparison_fields = blank %}
+  {% if plan_entitlements.metafields %}
+    {% assign comparison_fields = app.metafields.comparison.product_metafields.value %}
+  {% endif %}
+  {% assign hidden_fields = app.metafields.comparison.disabled_rows.value %}
+  {% assign first_field = true %}
+  {% for field in comparison_fields %}
+    {% unless hidden_fields contains field.id %}
+      {% assign field_value = product.metafields[field.namespace][field.key] %}
+      {% unless first_field %},{% endunless %}
+      {{ field.id | json }}: {% if field_value != blank %}{{ field_value | metafield_text | strip_html | truncate: 2000 | json }}{% else %}""{% endif %}
+      {% assign first_field = false %}
+    {% endunless %}
+  {% endfor %}
+}

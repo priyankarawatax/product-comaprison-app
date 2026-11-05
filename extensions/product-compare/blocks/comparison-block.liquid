@@ -1,0 +1,17 @@
+{% unless product.tags contains 'no-comparison' %}
+  <product-comparison-slot data-product-id="{{ product.id }}" {{ block.shopify_attributes }}>
+    {% if request.design_mode %}
+      <p data-compare-editor-hint>Enable the Product Compare app embed to display this control. Its display and visibility settings are managed in App embeds.</p>
+    {% endif %}
+  </product-comparison-slot>
+{% endunless %}
+{% schema %}
+{
+  "name": "Comparison block",
+  "target": "section",
+  "enabled_on": { "templates": ["product"] },
+  "settings": [
+    { "type": "paragraph", "content": "Enable Product Compare in App embeds to activate this block. Button display and collection exclusions follow the app embed settings. Drag this block to choose its position; automatic before/after Add to cart placement is used only when this block is not present." }
+  ]
+}
+{% endschema %}

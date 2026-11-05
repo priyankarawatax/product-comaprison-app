@@ -79,11 +79,10 @@ For more information on the Shopify Dev MCP please read [the documentation](http
 
 ### Application Storage
 
-This template uses [Prisma](https://www.prisma.io/) to store session data, by default using an [SQLite](https://www.sqlite.org/index.html) database.
+This app uses [Prisma](https://www.prisma.io/) with **MySQL** to store Shopify sessions, store metadata and verified subscriptions. Set `DATABASE_URL` from `.env.example`, then follow [the billing setup guide](docs/billing-setup.md) to configure Shopify App Pricing and apply the migrations.
 The database is defined as a Prisma schema in `prisma/schema.prisma`.
 
-This use of SQLite works in production if your app runs as a single instance.
-The database that works best for you depends on the data your app needs and how it is queried.
+The original SQLite migration is retained under `prisma/legacy-sqlite-migrations` for reference. The active migration directory contains a new MySQL baseline; existing SQLite records are not automatically migrated.
 Here’s a short list of databases providers that provide a free tier to get started:
 
 | Database   | Type             | Hosters                                                                                                                                                                                                                                    |
@@ -235,3 +234,7 @@ Shopify:
 Internationalization:
 
 - [Internationalizing your app](https://shopify.dev/docs/apps/best-practices/internationalization/getting-started)
+
+## Billing and MySQL
+
+Follow [the billing setup guide](docs/billing-setup.md) before running the app. It includes Partner Dashboard plan configuration, environment variables, MySQL migrations and development-store verification.

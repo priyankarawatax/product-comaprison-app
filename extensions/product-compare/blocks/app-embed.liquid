@@ -1,0 +1,245 @@
+{% liquid
+  assign excluded = false
+  if product.tags contains 'no-comparison'
+    assign excluded = true
+  endif
+  for excluded_collection in block.settings.excluded_collections
+    if collection.id == excluded_collection.id
+      assign excluded = true
+    endif
+    for product_collection in product.collections
+      if product_collection.id == excluded_collection.id
+        assign excluded = true
+        break
+      endif
+    endfor
+  endfor
+  assign review_settings = app.metafields.comparison.review_settings.value
+  assign plan_entitlements = app.metafields.comparison.plan_entitlements.value
+  assign comparison_product_limit = 2
+  unless plan_entitlements == blank
+    if plan_entitlements.comparisonProductLimit == blank
+      assign comparison_product_limit = 10
+    else
+      assign comparison_product_limit = plan_entitlements.comparisonProductLimit
+    endif
+  endunless
+  assign comparison_fields = blank
+  if plan_entitlements.metafields
+    assign comparison_fields = app.metafields.comparison.product_metafields.value
+  endif
+  assign launcher_design = 'filled'
+  assign launcher_background = '#000000'
+  assign launcher_text_color = '#ffffff'
+  assign launcher_border_color = '#000000'
+  assign launcher_radius = 14
+  assign launcher_font_size = 14
+  assign launcher_font_weight = '400'
+  if plan_entitlements.advancedCustomization
+    assign launcher_design = block.settings.launcher_design | default: 'filled'
+    assign launcher_background = block.settings.launcher_background | default: '#000000'
+    assign launcher_text_color = block.settings.launcher_text_color | default: '#ffffff'
+    assign launcher_border_color = block.settings.launcher_border_color | default: '#000000'
+    assign launcher_radius = block.settings.launcher_radius | default: 14
+    assign launcher_font_size = block.settings.launcher_font_size | default: 14
+    assign launcher_font_weight = block.settings.launcher_font_weight | default: '400'
+  endif
+  assign review_source = review_settings.source | default: 'auto'
+  assign review_rating = blank
+  assign review_count = blank
+  assign review_scale = review_settings.maxScale | default: 5
+  assign review_provider = blank
+  if review_source == 'auto' or review_source == 'standard'
+    assign standard_rating = product.metafields.reviews.rating.value
+    if standard_rating != blank
+      assign review_rating = standard_rating.rating | default: standard_rating
+      assign review_scale = standard_rating.scale_max | default: review_scale
+      assign review_count = product.metafields.reviews.rating_count.value
+      assign review_provider = 'Shopify standard'
+    endif
+  endif
+  if review_rating == blank and review_source != 'standard' and review_settings.ratingNamespace != blank and review_settings.ratingKey != blank
+    assign custom_rating = product.metafields[review_settings.ratingNamespace][review_settings.ratingKey].value
+    if custom_rating != blank
+      assign review_rating = custom_rating.rating | default: custom_rating
+      assign review_scale = custom_rating.scale_max | default: review_scale
+      assign review_provider = 'Custom metafield'
+      if review_settings.countNamespace != blank and review_settings.countKey != blank
+        assign review_count = product.metafields[review_settings.countNamespace][review_settings.countKey].value
+      endif
+    endif
+  endif
+  if review_rating == blank and review_source == 'auto'
+    assign review_rating = product.metafields.loox.avg_rating.value
+    assign review_count = product.metafields.loox.num_reviews.value
+    if review_rating != blank
+      assign review_provider = 'Loox'
+    endif
+  endif
+  if review_rating == blank and review_source == 'auto'
+    assign review_rating = product.metafields.stamped.reviews_average.value
+    assign review_count = product.metafields.stamped.reviews_count.value
+    if review_rating != blank
+      assign review_provider = 'Stamped'
+    endif
+  endif
+%}
+{% capture product_data %}
+  {% if product != blank %}
+    {
+      "variantIds": {{ product.variants | map: 'id' | json }},
+      "variantId": {{ product.selected_or_first_available_variant.id | append: '' | json }},
+      "variants": [
+        {% for variant in product.variants %}
+          {
+            "variantId": {{ variant.id | append: '' | json }},
+            "variantTitle": {{ variant.title | json }},
+            "price": {{ variant.price | money_with_currency | strip_html | json }},
+            "priceAmount": {{ variant.price | json }},
+            "sku": {{ variant.sku | json }},
+            "available": {{ variant.available | json }},
+            "image": {% if variant.featured_image %}{{ variant.featured_image | image_url: width: 600 | json }}{% elsif product.featured_image %}{{ product.featured_image | image_url: width: 600 | json }}{% else %}null{% endif %}
+          }{% unless forloop.last %},{% endunless %}
+        {% endfor %}
+      ],
+      "id": {{ product.id | append: '' | json }},
+      "title": {{ product.title | json }},
+      "url": {{ product.url | json }},
+      "price": {{ product.price | money_with_currency | strip_html | json }},
+      "priceAmount": {{ product.selected_or_first_available_variant.price | json }},
+      "vendor": {{ product.vendor | json }},
+      "type": {{ product.type | json }},
+      "image": {% if product.featured_image %}{{ product.featured_image | image_url: width: 600 | json }}{% else %}null{% endif %},
+      "sku": {{ product.selected_or_first_available_variant.sku | json }},
+      "description": {{ product.description | strip_html | truncate: 600 | json }},
+      "review": {% if review_rating != blank %}{"rating": {{ review_rating | plus: 0 | json }}, "count": {% if review_count != blank %}{{ review_count | plus: 0 | json }}{% else %}null{% endif %}, "scale": {{ review_scale | plus: 0 | json }}, "source": {{ review_provider | json }}}{% else %}null{% endif %},
+      "metafields": {
+        {% assign hidden_fields = app.metafields.comparison.disabled_rows.value %}
+        {% assign first_field = true %}
+        {% for field in comparison_fields %}
+          {% unless hidden_fields contains field.id %}
+            {% assign field_value = product.metafields[field.namespace][field.key] %}
+            {% unless first_field %},{% endunless %}
+            {{ field.id | json }}: {% if field_value != blank %}{{ field_value | metafield_text | strip_html | truncate: 2000 | json }}{% else %}""{% endif %}
+            {% assign first_field = false %}
+          {% endunless %}
+        {% endfor %}
+      },
+      "available": {{ product.available | json }}
+    }
+  {% else %}null{% endif %}
+{% endcapture %}
+<product-compare-app
+  data-analytics-endpoint="{{ routes.root_url }}apps/product-comparison/analytics"
+  data-sold-endpoint="{{ routes.root_url }}apps/product-comparison/sold"
+  data-smart-badges-endpoint="{{ routes.root_url }}apps/product-comparison/badges"
+  data-smart-badges-module="{{ 'product-compare-smart-badges.js' | asset_url }}"
+  data-product="{{ product_data | strip | escape }}"
+  data-row-order="{{ app.metafields.comparison.row_order.value | json | escape }}"
+  data-disabled-rows="{{ app.metafields.comparison.disabled_rows.value | json | escape }}"
+  data-metafield-rows="{{ comparison_fields | json | escape }}"
+  data-row-labels="{{ app.metafields.comparison.row_labels.value | json | escape }}"
+  data-review-settings="{{ app.metafields.comparison.review_settings.value | json | escape }}"
+  data-comparison-limit="{{ comparison_product_limit }}"
+  data-metafield-module="{{ 'product-compare-metafields.js' | asset_url }}"
+  data-routes-root="{{ routes.root_url }}"
+  data-currency="{{ localization.country.currency.iso_code }}"
+  data-api-module="{{ 'product-compare-api.js' | asset_url }}"
+  data-share-module="{{ 'product-compare-share.js' | asset_url }}"
+  data-excluded="{{ excluded }}"
+  data-position="{{ block.settings.main_button_position }}"
+  data-notifications="{{ block.settings.show_notifications }}"
+  data-hide-on-scroll="{{ block.settings.hide_on_scroll }}"
+  data-placement="{{ block.settings.button_position }}"
+  data-display="{{ block.settings.button_display }}"
+  data-launcher-label="{{ block.settings.launcher_label | default: 'Compare' | escape }}"
+  data-launcher-design="{{ launcher_design }}"
+  style="--compare-background: {{ launcher_background }}; --compare-text: {{ launcher_text_color }}; --compare-border: {{ launcher_border_color }}; --compare-radius: {{ launcher_radius }}px; --compare-font-size: {{ launcher_font_size }}px; --compare-font-weight: {{ launcher_font_weight }};"
+  {{ block.shopify_attributes }}
+>
+  <template data-compare-modal>
+    <dialog class="product-compare-dialog pc-modal" aria-label="Product comparison">
+      <header class="product-compare-modal-header pc-header">
+        <div><h2 class="pc-title">Product comparison</h2><p class="pc-subtitle" data-compare-summary aria-live="polite"></p></div>
+        <div class="product-compare-header-actions pc-header-actions">
+          <button type="button" class="product-compare-close pc-action-btn" data-compare-copy><span aria-hidden="true">↗</span> Copy link</button>
+          <button type="button" class="product-compare-close pc-action-btn pc-remove-all" data-compare-remove-all><span aria-hidden="true">♲</span> Remove all</button>
+          <button type="button" class="product-compare-close" data-compare-close aria-label="Close comparison"><span aria-hidden="true">×</span></button>
+        </div>
+      </header>
+      <div class="product-compare-modal-body pc-modal-body">
+        <p data-compare-share-status hidden></p>
+        <input data-compare-share-link aria-label="Comparison link" readonly hidden>
+        <div class="product-compare-toolbar pc-highlight-sidebar" role="group" aria-label="Highlight">
+          <strong><span aria-hidden="true">✦</span> Highlight</strong>
+          <label class="pc-highlight-option"><input class="pc-highlight-toggle" type="checkbox" data-compare-similarities><span><b>Similarities</b><small>Show matching details</small></span></label>
+          <label class="pc-highlight-option"><input class="pc-highlight-toggle" type="checkbox" data-compare-differences><span><b>Differences</b><small>Show only what's different</small></span></label>
+        </div>
+        <div class="product-compare-table-area" tabindex="0" role="region" aria-label="Product comparison table"></div>
+        <p data-compare-cart-status role="status" aria-live="polite"></p>
+      </div>
+    </dialog>
+  </template>
+</product-compare-app>
+{% render 'product-finder' %}
+<script type="module" src="{{ 'product-compare-analytics.js' | asset_url }}"></script>
+
+{% schema %}
+{
+  "name": "Product Compare",
+  "target": "body",
+  "javascript": "product-compare.js",
+  "stylesheet": "product-compare.css",
+  "settings": [
+    { "type": "header", "content": "Main comparison button" },
+    {
+      "type": "select", "id": "main_button_position", "label": "Main button position", "default": "bottom_right",
+      "options": [
+        { "value": "center_left", "label": "Center left" },
+        { "value": "center_right", "label": "Center right" },
+        { "value": "bottom_right", "label": "Bottom right" },
+        { "value": "bottom_left", "label": "Bottom left" }
+      ]
+    },
+    {
+      "type": "checkbox", "id": "hide_on_scroll", "label": "Hide main button on scroll", "default": false,
+      "info": "Hide the floating button while scrolling. It reappears when scrolling stops."
+    },
+    { "type": "header", "content": "Floating button appearance" },
+    { "type": "text", "id": "launcher_label", "label": "Button text", "default": "Compare", "info": "The comparison count is added automatically after this text." },
+    { "type": "select", "id": "launcher_design", "label": "Button design", "default": "filled", "options": [
+      { "value": "filled", "label": "Filled" },
+      { "value": "outline", "label": "Outline" }
+    ] },
+    { "type": "color", "id": "launcher_background", "label": "Button background color", "default": "#000000", "info": "Used by the filled design. Outline has a transparent background." },
+    { "type": "color", "id": "launcher_text_color", "label": "Button text color", "default": "#ffffff" },
+    { "type": "color", "id": "launcher_border_color", "label": "Button border color", "default": "#000000" },
+    { "type": "range", "id": "launcher_radius", "label": "Corner radius", "min": 0, "max": 24, "step": 1, "unit": "px", "default": 14 },
+    { "type": "range", "id": "launcher_font_size", "label": "Button font size", "min": 12, "max": 20, "step": 1, "unit": "px", "default": 14 },
+    { "type": "select", "id": "launcher_font_weight", "label": "Button text weight", "default": "400", "options": [
+      { "value": "400", "label": "Regular" },
+      { "value": "600", "label": "Semibold" },
+      { "value": "700", "label": "Bold" }
+    ] },
+    { "type": "header", "content": "Product comparison control" },
+    {
+      "type": "select", "id": "button_position", "label": "Button position", "default": "after",
+      "options": [
+        { "value": "after", "label": "After add to cart" },
+        { "value": "before", "label": "Before add to cart" }
+      ]
+    },
+    {
+      "type": "select", "id": "button_display", "label": "Button display", "default": "checkbox",
+      "options": [
+        { "value": "button", "label": "As button" },
+        { "value": "checkbox", "label": "As checkbox" }
+      ]
+    },
+    {
+      "type": "collection_list", "id": "excluded_collections", "label": "Select collections",
+      "info": "Choose specific collections where the comparison button should NOT appear. Leave empty to display it everywhere. To hide it on individual products instead, add the product tag no-comparison."
+    }
+  ]
+}
+{% endschema %}

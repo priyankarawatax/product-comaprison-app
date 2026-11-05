@@ -9,26 +9,233 @@ generator client {
 // enough when changing adapters.
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
-  provider = "sqlite"
-  url      = "file:dev.sqlite"
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model Session {
-  id            String    @id
-  shop          String
-  state         String
-  isOnline      Boolean   @default(false)
-  scope         String?
-  expires       DateTime?
-  accessToken   String
-  userId        BigInt?
-  firstName     String?
-  lastName      String?
-  email         String?
-  accountOwner  Boolean   @default(false)
-  locale        String?
-  collaborator  Boolean?  @default(false)
-  emailVerified Boolean?  @default(false)
-  refreshToken        String?
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?   @db.Text
+  expires             DateTime?
+  accessToken         String    @db.Text
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?   @db.Text
   refreshTokenExpires DateTime?
+}
+
+model Store {
+  id                  BigInt           @id @default(autoincrement())
+  shop                String           @unique
+  shopifyId           String           @unique
+  name                String
+  primaryDomain       String
+  currencyCode        String           @db.VarChar(3)
+  timezone            String
+  isDevelopmentStore  Boolean          @default(false)
+  setupGuideDismissed Boolean          @default(false)
+  smartBadgesEnabled  Boolean          @default(false)
+  badgeLowestPrice    Boolean          @default(true)
+  badgeBestRated      Boolean          @default(true)
+  badgeMostPopular    Boolean          @default(true)
+  badgeBestValue      Boolean          @default(true)
+  badgeLowestPriceLabel String         @default("Lowest Price") @db.VarChar(40)
+  badgeBestRatedLabel   String         @default("Best Rated") @db.VarChar(40)
+  badgeMostPopularLabel String         @default("Most Popular") @db.VarChar(40)
+  badgeBestValueLabel   String         @default("Best Value") @db.VarChar(40)
+  maxBadgesPerProduct Int              @default(2)
+  installedAt         DateTime         @default(now())
+  uninstalledAt       DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  subscription        Subscription?
+  productFinder       ProductFinder?
+  featureRequests     FeatureRequest[]
+
+  @@map("stores")
+}
+
+model FeatureRequest {
+  id          BigInt   @id @default(autoincrement())
+  shop        String   @db.VarChar(255)
+  store       Store    @relation(fields: [shop], references: [shop], onDelete: Cascade)
+  title       String   @db.VarChar(160)
+  description String   @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([shop, createdAt])
+  @@map("feature_requests")
+}
+
+// One authoritative current subscription snapshot per store, including free plans.
+// Native Shopify App Pricing contracts do not expose an AppSubscription ID.
+model Subscription {
+  id                   BigInt    @id @default(autoincrement())
+  shop                 String    @unique
+  store                Store     @relation(fields: [shop], references: [shop], onDelete: Cascade)
+  status               String    @default("INACTIVE")
+  planKey              String?
+  itemHandle           String?
+  billingPeriod        String?
+  amount               Decimal?  @db.Decimal(12, 2)
+  currencyCode         String?   @db.VarChar(3)
+  creditAllowance      Int       @default(0)
+  creditRenewal        String?
+  cancelAtEndOfCycle   Boolean   @default(false)
+  trialEndsAt          DateTime?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  legacySubscriptionId String?
+  snapshot             Json?
+  syncedAt             DateTime
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([status, syncedAt])
+  @@map("subscription")
+}
+
+model AnalyticsEvent {
+  id               BigInt                       @id @default(autoincrement())
+  eventId          String                       @db.VarChar(36)
+  shop             String                       @db.VarChar(191)
+  eventType        String                       @db.VarChar(40)
+  productId        String?                      @db.VarChar(32)
+  variantId        String?                      @db.VarChar(32)
+  sessionId        String?                      @db.VarChar(36)
+  metadata         Json?
+  createdAt        DateTime                     @default(now())
+  comparedProducts AnalyticsComparisonProduct[]
+
+  @@unique([shop, eventId])
+  @@index([shop, createdAt])
+  @@index([shop, eventType, createdAt])
+  @@index([shop, productId, createdAt])
+  @@index([shop, sessionId, createdAt])
+  @@map("analytics_events")
+}
+
+// Normalized open-event products allow pair aggregation without loading events
+// into application memory or requiring MySQL 8 JSON_TABLE support.
+model AnalyticsComparisonProduct {
+  eventId   BigInt
+  productId String         @db.VarChar(32)
+  shop      String         @db.VarChar(191)
+  createdAt DateTime       @default(now())
+  event     AnalyticsEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, productId])
+  @@index([shop, createdAt, productId])
+  @@map("analytics_comparison_products")
+}
+
+model ProductFinder {
+  id                  BigInt                  @id @default(autoincrement())
+  shop                String                  @unique
+  store               Store                   @relation(fields: [shop], references: [shop], onDelete: Cascade)
+  enabled             Boolean                 @default(false)
+  title               String                  @default("Find the right product") @db.VarChar(160)
+  description         String                  @default("") @db.VarChar(500)
+  buttonText          String                  @default("Find the right product") @db.VarChar(80)
+  buttonPosition      String                  @default("bottom_right") @db.VarChar(20)
+  showDesktop         Boolean                 @default(true)
+  showMobile          Boolean                 @default(true)
+  resultHeading       String                  @default("Recommended for you") @db.VarChar(160)
+  recommendationLimit Int                     @default(10)
+  modalBackground     String                  @default("#FAF9F6") @db.VarChar(7)
+  modalTextColor      String                  @default("#202020") @db.VarChar(7)
+  modalAccentColor    String                  @default("#B49A82") @db.VarChar(7)
+  modalBorderRadius   Int                     @default(20)
+  modalTitleSize      Int                     @default(28)
+  modalQuestionSize   Int                     @default(20)
+  buttonBackground    String                  @default("#FAF9F6") @db.VarChar(7)
+  buttonTextColor     String                  @default("#202020") @db.VarChar(7)
+  buttonBorderColor   String                  @default("#DDD2C5") @db.VarChar(7)
+  buttonFontSize      Int                     @default(15)
+  modalPadding        Int                     @default(34)
+  answerPadding       Int                     @default(16)
+  noMatchHeading      String                  @default("No matching products found") @db.VarChar(160)
+  noMatchDescription  String                  @default("We couldn't find an exact match based on your selections. But you might like these popular picks instead.") @db.VarChar(500)
+  sourceType          String                  @default("all_products") @db.VarChar(20)
+  collectionId        String?                 @db.VarChar(100)
+  collectionTitle     String?                 @db.VarChar(255)
+  version             Int                     @default(0)
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  questions           ProductFinderQuestion[]
+  ruleSets            ProductFinderRuleSet[]
+
+  @@map("product_finders")
+}
+
+model ProductFinderRuleSet {
+  id              BigInt                  @id @default(autoincrement())
+  key             String                  @unique @db.VarChar(64)
+  finderId        BigInt
+  finder          ProductFinder           @relation(fields: [finderId], references: [id], onDelete: Cascade)
+  name            String                  @db.VarChar(100)
+  enabled         Boolean                 @default(true)
+  sourceType      String                  @default("all_products") @db.VarChar(20)
+  collectionId    String?                 @db.VarChar(100)
+  collectionTitle String?                 @db.VarChar(255)
+  vendor          String?                 @db.VarChar(255)
+  productId       String?                 @db.VarChar(100)
+  productTitle    String?                 @db.VarChar(255)
+  collections     Json?
+  vendors         Json?
+  products        Json?
+  position        Int
+  questions       ProductFinderQuestion[]
+
+  @@unique([finderId, collectionId])
+  @@unique([finderId, productId])
+  @@index([finderId, position])
+  @@map("product_finder_rule_sets")
+}
+
+model ProductFinderQuestion {
+  id                 BigInt                @id @default(autoincrement())
+  key                String                @unique @db.VarChar(64)
+  finderId           BigInt
+  finder             ProductFinder         @relation(fields: [finderId], references: [id], onDelete: Cascade)
+  ruleSetId          BigInt
+  ruleSet            ProductFinderRuleSet  @relation(fields: [ruleSetId], references: [id], onDelete: Cascade)
+  question           String                @db.VarChar(250)
+  position           Int
+  enabled            Boolean               @default(true)
+  templateQuestionId String?               @db.VarChar(64)
+  mappingType        String?               @db.VarChar(40)
+  fieldKey           String?               @db.VarChar(350)
+  required           Boolean               @default(false)
+  selectionMode      String                @default("single") @db.VarChar(10)
+  answers            ProductFinderAnswer[]
+
+  @@index([finderId, position])
+  @@index([ruleSetId, position])
+  @@map("product_finder_questions")
+}
+
+model ProductFinderAnswer {
+  id         BigInt                @id @default(autoincrement())
+  key        String                @unique @db.VarChar(64)
+  questionId BigInt
+  question   ProductFinderQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  label      String                @db.VarChar(160)
+  field      String                @db.VarChar(350)
+  operator   String                @db.VarChar(30)
+  value      String                @db.VarChar(500)
+  weight     Int                   @default(1)
+  position   Int
+
+  @@index([questionId, position])
+  @@map("product_finder_answers")
 }

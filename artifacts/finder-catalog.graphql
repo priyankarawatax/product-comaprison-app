@@ -1,0 +1,11 @@
+#graphql
+    query FinderCatalog($after: String, $first: Int!, $query: String!) {
+      productVariants(first: $first, after: $after, query: $query, sortKey: ID) {
+        nodes {
+          id title price availableForSale selectedOptions { name value }
+          product { id handle title vendor productType tags status onlineStoreUrl mf0: metafield(namespace: "custom", key: "material") { type value } mf1: metafield(namespace: "custom", key: "ram") { type value } }
+        }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  

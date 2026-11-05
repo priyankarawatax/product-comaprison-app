@@ -1,6 +1,9 @@
+import { FeatureRequestButton } from "../components/feature-request";
+
 export default function AdditionalPage() {
   return (
     <s-page heading="Additional page">
+      <FeatureRequestButton />
       <s-section heading="Multiple pages">
         <s-paragraph>
           The app template comes with an additional page which demonstrates how

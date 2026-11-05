@@ -1,13 +1,19 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "25def6f42f5e17d51e0a6f365fe8e18d"
-application_url = "https://example.com"
+application_url = "https://bogoboosterstaging.axtrics.com"
 embedded = true
-name = "AI Visualization"
+name = "Pickwise: Product Compare"
 
+#BetterPick, ChoicePilot, CompareWise, PickRight, Find & Compare
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products,write_metaobjects,write_metaobject_definitions"
+scopes = "write_products,read_publications,write_metaobjects,write_metaobject_definitions,write_app_proxy,read_reports,read_orders"
+
+[app_proxy]
+url = "/proxy"
+prefix = "apps"
+subpath = "product-comparison"
 
 [product.metafields.app.demo_info]
 type = "single_line_text_field"
@@ -44,9 +50,12 @@ api_version = "2026-10"
   uri = "/webhooks/app/scopes_update"
   topics = [ "app/scopes_update" ]
 
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/compliance"
+  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
+
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://bogoboosterstaging.axtrics.com/api/auth" ]
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = true

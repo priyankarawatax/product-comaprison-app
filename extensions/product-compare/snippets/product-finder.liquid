@@ -1,0 +1,69 @@
+{% doc %}
+  Global Product Finder launcher and quiz. Display settings load through the signed app proxy.
+{% enddoc %}
+{% liquid
+  assign finder_collection_ids = ''
+  if collection
+    assign finder_collection_ids = collection.id
+  elsif product
+    for product_collection in product.collections limit: 50
+      if finder_collection_ids != blank
+        assign finder_collection_ids = finder_collection_ids | append: ','
+      endif
+      assign finder_collection_ids = finder_collection_ids | append: product_collection.id
+    endfor
+  endif
+%}
+{{ 'product-finder.css' | asset_url | stylesheet_tag }}
+<product-finder-app
+  class="pf-luxury-root"
+  data-product-compare-widget
+  data-results-module="{{ 'product-finder-results.js' | asset_url }}"
+  data-routes-root="{{ routes.root_url }}"
+  data-currency="{{ localization.country.currency.iso_code }}"
+  data-country="{{ localization.country.iso_code }}"
+  data-collection-id="{{ collection.id | default: product.collections.first.id }}"
+  data-collection-ids="{{ finder_collection_ids | escape }}"
+  data-collection-handle="{{ collection.handle | escape }}"
+  data-product-id="{{ product.id }}"
+  data-product-vendor="{{ product.vendor | escape }}"
+  data-endpoint="{{ routes.root_url }}apps/product-comparison/product-finder"
+  data-analytics-endpoint="{{ routes.root_url }}apps/product-comparison/analytics"
+  hidden
+>
+  <button
+    class="pf-launcher pf-luxury-launcher pf-search-trigger"
+    type="button"
+    data-finder-open
+    aria-haspopup="dialog"
+    aria-label="Find products"
+  >
+    <span class="pf-search-label" data-pf-search-label>Search</span>
+    <svg class="pf-search-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+      <circle class="pf-search-icon-ring" cx="10.25" cy="10.25" r="6.35"></circle>
+      <path class="pf-search-icon-handle" d="M14.82 14.82 20.15 20.15"></path>
+      <path class="pf-search-icon-accent" d="M6.8 9.05a3.75 3.75 0 0 1 3.4-2.55"></path>
+      <circle class="pf-search-icon-glint" cx="7.05" cy="7.15" r="0.7"></circle>
+    </svg>
+  </button>
+  <dialog class="pf-dialog pf-luxury-dialog" aria-labelledby="product-finder-title" aria-describedby="product-finder-description">
+    <header class="pf-header pf-luxury-header">
+      <div>
+        <h2 id="product-finder-title"></h2>
+        <p id="product-finder-description"></p>
+      </div>
+      <button class="pf-close pf-luxury-close" type="button" data-finder-close aria-label="Close Product Finder">&#215;</button>
+    </header>
+    <div class="pf-content pf-luxury-content">
+      <p class="pf-progress-label pf-luxury-progress-label" data-finder-progress-label aria-live="polite"></p>
+      <progress class="pf-progress pf-luxury-progress" data-finder-progress aria-label="Quiz progress"></progress>
+      <div class="pf-luxury-step" data-finder-step></div>
+    </div>
+    <footer class="pf-footer pf-luxury-footer">
+      <button class="pf-secondary pf-luxury-button pf-luxury-button--secondary" type="button" data-finder-back>Back</button>
+      <button class="pf-primary pf-luxury-button pf-luxury-button--primary" type="button" data-finder-next disabled>Next</button>
+    </footer>
+  </dialog>
+
+</product-finder-app>
+<script src="{{ 'product-finder.js' | asset_url }}" defer></script>

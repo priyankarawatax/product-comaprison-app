@@ -1,0 +1,15 @@
+Yeh ek **Shopify embedded app** hai jo merchants ko unke storefront par products compare karne aur customers ko suitable product recommend karne mein help karta hai.
+
+Main features:
+
+- **Product Comparison:** Customers multiple products ko side-by-side compare kar sakte hain.
+- **Custom Comparison Table:** Merchant rows ko reorder, disable, aur product metafields add kar sakta hai.
+- **Product Finder:** Questions aur rules ke basis par customers ko recommended products dikhata hai.
+- **Customizable UI:** Finder button, modal colors, spacing, text aur result screen customize ki ja sakti hai.
+- **Analytics Dashboard:** Comparison opens, product interactions, popular products aur comparison pairs track hote hain.
+- **Billing:** Shopify App Pricing ke through subscription plans aur trials manage hote hain.
+- **Theme Extension:** App embed aur product-page blocks ke through storefront mein integrate hota hai.
+
+Tech stack: **React Router 7, React 18, TypeScript, Shopify App Bridge/Polaris, Prisma 6, MySQL, GraphQL, Liquid aur Shopify Theme App Extension**.
+
+Overall, project ka objective Shopify stores ko ek configurable **product comparison + guided product recommendation solution** provide karna hai.
