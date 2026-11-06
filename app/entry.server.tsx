@@ -15,6 +15,11 @@ export default async function handleRequest(
   reactRouterContext: EntryContext
 ) {
   addDocumentResponseHeaders(request, responseHeaders);
+  // Cloudflare's automatic Web Analytics injection can split React Router's
+  // streamed Suspense markers and leave a visible "$" text node in the app.
+  // Keep embedded app documents private and prevent intermediaries from
+  // rewriting the streamed HTML response.
+  responseHeaders.set("Cache-Control", "private, no-store, no-transform");
   const userAgent = request.headers.get("user-agent");
   const callbackName = isbot(userAgent ?? '')
     ? "onAllReady"
