@@ -5,6 +5,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
 import { FeatureRequest } from "../components/feature-request";
+import { billingSelectionRedirectUrl } from "../billing/reinstall-redirect";
 import db from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -16,7 +17,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       select: { billingSelectionRequired: true },
     });
     if (store?.billingSelectionRequired) {
-      throw redirect("/app/billing?reinstall=1");
+      // A fresh embedded install authenticates with query parameters instead
+      // of an existing browser session. Preserve Shopify's validated params
+      // so the billing document request can complete authentication.
+      throw redirect(billingSelectionRedirectUrl(request.url));
     }
   }
   // eslint-disable-next-line no-undef
