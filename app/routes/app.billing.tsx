@@ -8,9 +8,10 @@ import { pricingPlanUrl } from "../billing/partner.server";
 import {
   BILLING_INTERVALS,
   PLANS,
+  formatBillingDate,
   formatUsd,
+  planActionLabel,
   type BillingInterval,
-  type PlanDefinition,
 } from "../billing/plans";
 import "../styles/billing.css";
 
@@ -39,11 +40,17 @@ const COMPARISON_ROWS = [
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { session, admin } = await authenticate.admin(request);
+  const approvedPlanHandle = new URL(request.url).searchParams.get("plan_handle");
   let currentPlanKey: PlanKey = "free";
   let currentBillingInterval: BillingInterval | null = null;
+  let cancelAtEndOfCycle = false;
+  let currentPeriodEnd: string | null = null;
+  let billingSelectionRequired = false;
   let verificationError = null;
   try {
-    const { subscription, accessPlan } = await loadBilling(admin, session.shop);
+    const result = await loadBilling(admin, session.shop, approvedPlanHandle);
+    const { subscription, accessPlan } = result;
+    billingSelectionRequired = result.billingSelectionRequired;
     currentPlanKey = accessPlan;
     currentBillingInterval =
       subscription?.status === "ACTIVE" && subscription.billingPeriod === "ANNUAL"
@@ -52,6 +59,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
             subscription.billingPeriod === "EVERY_30_DAYS"
           ? "monthly"
           : null;
+    cancelAtEndOfCycle =
+      subscription?.status === "ACTIVE" && subscription.cancelAtEndOfCycle;
+    currentPeriodEnd =
+      cancelAtEndOfCycle && subscription?.currentPeriodEnd
+        ? formatBillingDate(subscription.currentPeriodEnd)
+        : null;
   } catch {
     verificationError =
       "We could not verify your current subscription. Plan access is temporarily limited to Free until verification succeeds.";
@@ -59,6 +72,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return {
     currentPlanKey,
     currentBillingInterval,
+    cancelAtEndOfCycle,
+    currentPeriodEnd,
+    billingSelectionRequired,
     verificationError,
     freePlanUrl: pricingPlanUrl(session.shop, "free", "EVERY_30_DAYS"),
     growthPlanUrls: {
@@ -70,24 +86,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
       yearly: pricingPlanUrl(session.shop, "growth", "ANNUAL"),
     },
   };
-}
-
-function planActionLabel(
-  plan: PlanDefinition,
-  currentPlanKey: PlanKey,
-  currentBillingInterval: BillingInterval | null,
-  selectedInterval: BillingInterval,
-) {
-  if (plan.key === currentPlanKey) {
-    if (plan.key === "free" || currentBillingInterval === selectedInterval) {
-      return "Current plan";
-    }
-    return `Switch to ${selectedInterval}`;
-  }
-  if (plan.key === "free") return "Downgrade to Free";
-  if (currentPlanKey === "free") return `Start ${plan.trialDays}-day free trial`;
-  if (plan.key === "pro") return "Upgrade to Pro";
-  return "Switch to Growth";
 }
 
 function ComparisonValue({ value }: { value: boolean | string }) {
@@ -104,6 +102,9 @@ export default function BillingPage() {
   const {
     currentPlanKey,
     currentBillingInterval,
+    cancelAtEndOfCycle,
+    currentPeriodEnd,
+    billingSelectionRequired,
     verificationError,
     freePlanUrl,
     growthPlanUrls,
@@ -120,6 +121,21 @@ export default function BillingPage() {
 
         {verificationError && <s-banner tone="warning">{verificationError}</s-banner>}
 
+        {billingSelectionRequired && (
+          <s-banner tone="warning" heading="Select a plan to continue">
+            Your previous installation is inactive. Select Free, Growth, or Pro to continue.
+            Shopify automatically applies only the trial days you still have available.
+          </s-banner>
+        )}
+
+        {!billingSelectionRequired && cancelAtEndOfCycle && (
+          <s-banner tone="warning" heading={`${currentPlan.name} is scheduled to cancel`}>
+            Your current plan remains available
+            {currentPeriodEnd ? ` until ${currentPeriodEnd}` : " until the end of the current billing cycle"}.
+            Select Reactivate {currentPlan.name} below to request Shopify approval again.
+          </s-banner>
+        )}
+
         <div className="billing-header">
           <s-stack>
             <s-heading fontSize="large-300" >Plans & billing</s-heading>
@@ -133,12 +149,20 @@ export default function BillingPage() {
                 <span className="billing-current-plan__mark" aria-hidden="true">✓</span>
                 <s-stack>
                   <s-text color="subdued">Current plan</s-text>
-                  <s-heading>{currentPlan.name}</s-heading>
+                  <s-heading>{billingSelectionRequired ? "Select a plan" : currentPlan.name}</s-heading>
                   <s-text color="subdued">
-                    {currentPlan.key === "free"
+                    {billingSelectionRequired
+                      ? "Your previous plan is no longer active for this installation."
+                      : currentPlan.key === "free"
                       ? "You are on the Free plan."
                       : `${formatUsd(currentPlanPrice)} / ${
                           currentPlanInterval === "monthly" ? "month" : "year"
+                        }${
+                          cancelAtEndOfCycle
+                            ? currentPeriodEnd
+                              ? ` · Cancels ${currentPeriodEnd}`
+                              : " · Cancels at period end"
+                            : ""
                         }`}
                   </s-text>
                 </s-stack>
@@ -167,15 +191,19 @@ export default function BillingPage() {
         <div className="billing-plan-grid">
           {PLANS.map((plan) => {
             const price = plan[interval];
-            const isCurrentPlan = currentPlanKey === plan.key;
+            const isCurrentPlan =
+              !billingSelectionRequired && currentPlanKey === plan.key;
             const isExactCurrent =
               isCurrentPlan &&
-              (plan.key === "free" || currentBillingInterval === interval);
+              (plan.key === "free" || currentBillingInterval === interval) &&
+              !cancelAtEndOfCycle;
             const actionLabel = planActionLabel(
               plan,
               currentPlanKey,
               currentBillingInterval,
               interval,
+              cancelAtEndOfCycle,
+              billingSelectionRequired,
             );
 
             return (
@@ -213,7 +241,16 @@ export default function BillingPage() {
 
                     {plan.trialDays > 0 && (
                       <s-stack gap="base">
-                        <s-badge tone="info">{plan.trialDays}-day free trial</s-badge>
+                        <s-badge tone="info">
+                          {billingSelectionRequired
+                            ? `Up to ${plan.trialDays}-day free trial`
+                            : `${plan.trialDays}-day free trial`}
+                        </s-badge>
+                        {billingSelectionRequired && (
+                          <s-text color="subdued">
+                            Shopify calculates your remaining trial eligibility.
+                          </s-text>
+                        )}
                       </s-stack>
                     )}
                   </div>

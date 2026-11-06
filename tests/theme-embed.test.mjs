@@ -258,7 +258,9 @@ test("scroll hides main button temporarily, all position choices are retained", 
     "bottom_right",
     "bottom_left",
   ]) {
-    const { app, window } = setup(t, { position, hideOnScroll: "true" });
+    const { app, window, document } = setup(t, { position, hideOnScroll: "true" });
+    document.querySelector(".product-compare-control button").click();
+    assert.equal(app.launcher.hidden, false);
     assert.equal(app.launcher.dataset.position, position);
     window.dispatchEvent(new window.Event("scroll"));
     assert.equal(app.launcher.hidden, true);

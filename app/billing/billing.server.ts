@@ -89,12 +89,32 @@ export async function syncSubscription(store: {
   });
 }
 
-export async function loadBilling(admin: AdminApiContext, shop: string) {
+export async function loadBilling(
+  admin: AdminApiContext,
+  shop: string,
+  approvedPlanHandle?: string | null,
+) {
   const store = await saveStore(admin, shop);
   // Development stores use Shopify's test pricing, but feature access still
   // follows the verified plan selected by the merchant.
   const subscription = await syncSubscription(store);
-  const accessPlan = effectiveAccessPlan(subscription);
+  let billingSelectionRequired = store.billingSelectionRequired;
+  if (
+    billingSelectionRequired &&
+    approvedPlanHandle &&
+    subscription?.status === "ACTIVE" &&
+    !subscription.cancelAtEndOfCycle &&
+    subscription.itemHandle === approvedPlanHandle
+  ) {
+    await db.store.update({
+      where: { id: store.id },
+      data: { billingSelectionRequired: false },
+    });
+    billingSelectionRequired = false;
+  }
+  const accessPlan = billingSelectionRequired
+    ? "free"
+    : effectiveAccessPlan(subscription);
   const installationResponse = await admin.graphql(`#graphql
     query BillingEntitlementOwner { currentAppInstallation { id } }
   `);
@@ -123,5 +143,5 @@ export async function loadBilling(admin: AdminApiContext, shop: string) {
     ("errors" in entitlementResult && Array.isArray(entitlementResult.errors) && entitlementResult.errors.length > 0) ||
     entitlementResult.data?.metafieldsSet?.userErrors?.length
   ) throw new Error("Unable to update storefront entitlements");
-  return { store, subscription, accessPlan };
+  return { store, subscription, accessPlan, billingSelectionRequired };
 }

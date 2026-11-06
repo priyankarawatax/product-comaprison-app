@@ -44,44 +44,6 @@ async function reportCounts(admin: NonNullable<AdminClient>, ids: string[]) {
   return sold;
 }
 
-async function testOrderCounts(admin: NonNullable<AdminClient>, ids: string[]) {
-  const sold = emptyCounts(ids);
-  let after: string | null = null;
-  for (let page = 0; page < 50; page += 1) {
-    const response = await admin.graphql(
-      `#graphql
-        query DevelopmentStoreTestOrderSoldCounts($after: String, $search: String!) {
-          orders(first: 100, after: $after, query: $search) {
-            nodes {
-              displayFinancialStatus
-              lineItems(first: 250) { nodes { quantity product { id } } }
-            }
-            pageInfo { hasNextPage endCursor }
-          }
-        }
-      `,
-      { variables: { after, search: "test:true" } },
-    );
-    const result = await response.json() as {
-      data?: { orders?: { nodes?: Array<{ displayFinancialStatus?: string; lineItems?: { nodes?: Array<{ quantity?: number; product?: { id?: string } | null }> } }>; pageInfo?: { hasNextPage?: boolean; endCursor?: string | null } } };
-      errors?: unknown[];
-    };
-    const orders = result.data?.orders;
-    if (result.errors?.length || !orders) throw new Error("Test orders unavailable");
-    for (const order of orders.nodes || []) {
-      if (!["PAID", "PARTIALLY_PAID", "PARTIALLY_REFUNDED"].includes(order.displayFinancialStatus || "")) continue;
-      for (const lineItem of order.lineItems?.nodes || []) {
-        const id = numericId(lineItem.product?.id);
-        const quantity = Number(lineItem.quantity);
-        if (Object.hasOwn(sold, id) && Number.isSafeInteger(quantity) && quantity > 0) sold[id] += quantity;
-      }
-    }
-    if (!orders.pageInfo?.hasNextPage || !orders.pageInfo.endCursor) break;
-    after = orders.pageInfo.endCursor;
-  }
-  return sold;
-}
-
 export async function loader({ request }: LoaderFunctionArgs) {
   if (request.method !== "GET") return new Response(null, { status: 405, headers });
   try {
@@ -95,32 +57,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     if (ids.length < 1 || ids.length > 10 || ids.some((id) => !productId.test(id))) {
       return Response.json({ error: "Invalid products" }, { status: 400, headers });
     }
-    const planResponse = await admin.graphql(`#graphql
-      query SoldCountStorePlan { shop { plan { partnerDevelopment } } }
-    `);
-    const planResult = await planResponse.json() as { data?: { shop?: { plan?: { partnerDevelopment?: boolean } } }; errors?: unknown[] };
-    if (planResult.errors?.length || typeof planResult.data?.shop?.plan?.partnerDevelopment !== "boolean") {
-      return Response.json({ error: "Sold counts unavailable" }, { status: 503, headers });
-    }
-    const isDevelopmentStore = planResult.data.shop.plan.partnerDevelopment;
-    const [report, tests] = await Promise.allSettled([
-      reportCounts(admin, ids),
-      isDevelopmentStore ? testOrderCounts(admin, ids) : Promise.resolve(emptyCounts(ids)),
-    ]);
-    // Shopify sales reports exclude test orders. Add test-order quantities only
-    // for development stores; production counts remain the real sales report.
-    // A dev store can still show its test purchases if reports are unavailable.
-    if (!isDevelopmentStore && report.status === "rejected") {
-      return Response.json({ error: "Sold counts unavailable" }, { status: 503, headers });
-    }
-    if (isDevelopmentStore && report.status === "rejected" && tests.status === "rejected") {
-      return Response.json({ error: "Sold counts unavailable" }, { status: 503, headers });
-    }
-    const sold = emptyCounts(ids);
-    for (const id of ids) {
-      sold[id] = (report.status === "fulfilled" ? report.value[id] : 0) +
-        (tests.status === "fulfilled" ? tests.value[id] : 0);
-    }
+    const sold = await reportCounts(admin, ids);
     return Response.json({ sold }, { headers });
   } catch (error) {
     if (error instanceof Response) return error;

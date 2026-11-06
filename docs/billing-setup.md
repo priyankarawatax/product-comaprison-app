@@ -46,6 +46,9 @@ The `subscription` table has one row per store because `storeId` is unique. It i
 5. Protected server routes use a verified database snapshot for at most five minutes, then refresh it from the Partner API. A failed stale verification grants only Free access and retries after a short cooldown.
 6. Pending downgrades retain the current active plan until Shopify makes the pending change effective.
 7. The authenticated uninstall webhook marks the store and subscription inactive and removes sessions transactionally.
+8. Uninstall also sets a server-side plan-selection gate. Reinstall redirects the merchant to Plans & Billing, grants only Free entitlements until a Shopify-hosted plan approval returns, and never restores the previous paid tier automatically.
+
+Shopify App Pricing owns trial proration. It tracks consumed trial days over a 180-day period, so reinstalling cannot restart the configured five-day trial. For example, a merchant who used three days is eligible for only the remaining two days when Shopify approves the next plan. The app deliberately doesn't calculate, extend, or reset this allowance.
 
 Shopify App Pricing does not send `APP_SUBSCRIPTIONS_UPDATE` notifications. The app therefore reconciles on the pricing page and on protected requests when the snapshot is stale. Refreshes are deduplicated per store within one process. Because the Partner API limit is organization-wide, a multi-instance high-traffic deployment should add a shared rate limiter or reconciliation queue.
 

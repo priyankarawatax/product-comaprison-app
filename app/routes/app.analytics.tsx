@@ -178,16 +178,15 @@ function AnalyticsDashboard({ data }: { data: Extract<Awaited<ReturnType<typeof 
         </s-stack>
 
         {!data.summary.total && !data.finderClicks ? (
-          <s-section>
-            <s-box padding="large" background="subdued" borderRadius="base">
-              <s-stack gap="base" alignItems="center">
-                <s-badge tone="info">Getting started</s-badge>
-                <s-heading>No comparison activity yet</s-heading>
-                <s-paragraph>Analytics will appear when customers start using product comparison. No activity was recorded in this date range.</s-paragraph>
-                <s-button href="/app" variant="primary">View dashboard</s-button>
-              </s-stack>
-            </s-box>
-          </s-section>
+          <s-empty-state heading="No comparison activity yet">
+            <s-text slot="subheading">
+              Analytics will appear when customers start using product comparison.
+              No activity was recorded in this date range.
+            </s-text>
+            <s-button slot="primary-action" href="/app" variant="primary">
+              View dashboard
+            </s-button>
+          </s-empty-state>
         ) : (
           <>
             <s-stack gap="base">

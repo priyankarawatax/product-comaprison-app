@@ -55,6 +55,7 @@ model Store {
   maxBadgesPerProduct Int              @default(2)
   installedAt         DateTime         @default(now())
   uninstalledAt       DateTime?
+  billingSelectionRequired Boolean     @default(false)
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
   subscription        Subscription?

@@ -86,3 +86,34 @@ export function formatUsd(amount: number) {
     minimumFractionDigits: amount === 0 ? 0 : 2,
   }).format(amount);
 }
+
+export function planActionLabel(
+  plan: PlanDefinition,
+  currentPlanKey: PlanKey,
+  currentBillingInterval: BillingInterval | null,
+  selectedInterval: BillingInterval,
+  cancelAtEndOfCycle = false,
+  billingSelectionRequired = false,
+) {
+  if (billingSelectionRequired) return `Select ${plan.name}`;
+  if (plan.key === currentPlanKey) {
+    if (plan.key === "free") return "Current plan";
+    if (currentBillingInterval === selectedInterval) {
+      return cancelAtEndOfCycle ? `Reactivate ${plan.name}` : "Current plan";
+    }
+    return `Switch to ${selectedInterval}`;
+  }
+  if (plan.key === "free") return "Downgrade to Free";
+  if (currentPlanKey === "free") return `Start ${plan.trialDays}-day free trial`;
+  if (plan.key === "pro") return "Upgrade to Pro";
+  return "Switch to Growth";
+}
+
+export function formatBillingDate(value: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(value);
+}

@@ -12,7 +12,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await tx.$queryRaw`SELECT id FROM stores WHERE shop = ${shop} FOR UPDATE`;
     await tx.store.updateMany({
       where: { shop },
-      data: { uninstalledAt: receivedAt },
+      data: {
+        uninstalledAt: receivedAt,
+        billingSelectionRequired: true,
+      },
     });
     await tx.subscription.updateMany({
       where: { store: { shop } },

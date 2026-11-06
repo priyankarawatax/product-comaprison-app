@@ -33,10 +33,11 @@ export async function getStorePlanAccess(shop: string): Promise<StorePlanAccess>
       shopifyId: true,
       shop: true,
       uninstalledAt: true,
+      billingSelectionRequired: true,
       subscription: { select: { status: true, planKey: true, syncedAt: true } },
     },
   });
-  if (!store || store.uninstalledAt) {
+  if (!store || store.uninstalledAt || store.billingSelectionRequired) {
     return { plan: "free", entitlements: getPlanEntitlements("free") };
   }
   let subscription = store.subscription;

@@ -2,6 +2,11 @@ import { test, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { resolveSubscription } from "../app/billing/subscription-policy";
 import {
+  formatBillingDate,
+  planActionLabel,
+  PLANS,
+} from "../app/billing/plans";
+import {
   fetchActiveSubscription,
   pricingPlanUrl,
   pricingUrl,
@@ -84,6 +89,38 @@ test("handles can be configured independently of plan display names", () => {
       growth: "growth_plan",
     })?.plan.key,
     "growth",
+  );
+});
+
+test("a cancelling plan exposes a fresh Shopify approval action after reinstall", () => {
+  const pro = PLANS.find((plan) => plan.key === "pro")!;
+  assert.equal(
+    planActionLabel(pro, "pro", "monthly", "monthly", true),
+    "Reactivate Pro",
+  );
+  assert.equal(
+    planActionLabel(pro, "pro", "monthly", "monthly", false),
+    "Current plan",
+  );
+});
+
+test("reinstall requires an explicit plan selection instead of restoring the old plan", () => {
+  const free = PLANS.find((plan) => plan.key === "free")!;
+  const pro = PLANS.find((plan) => plan.key === "pro")!;
+  assert.equal(
+    planActionLabel(free, "free", null, "monthly", false, true),
+    "Select Free",
+  );
+  assert.equal(
+    planActionLabel(pro, "free", null, "monthly", false, true),
+    "Select Pro",
+  );
+});
+
+test("subscription cancellation dates are stable across server time zones", () => {
+  assert.equal(
+    formatBillingDate(new Date("2026-11-30T23:59:59.000Z")),
+    "November 30, 2026",
   );
 });
 
