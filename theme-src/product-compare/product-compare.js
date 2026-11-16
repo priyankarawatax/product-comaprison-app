@@ -258,19 +258,51 @@
       );
       if (removing && !next.length && this.dialog.open) this.dialog.close();
     }
-    selection(target) {
-      if (!this.product) return null;
+    selection(target, product = this.product) {
+      if (!product) return null;
+      const variantIds = product === this.product
+        ? this.variantIds
+        : new Set((product.variantIds || []).map(String));
+      const variants = product === this.product ? this.variants : (product.variants || []);
       const form = target?.closest('form[action*="/cart/add"]');
-      const input = form?.querySelector('[name="id"]') || [...document.querySelectorAll('main form[action*="/cart/add"] [name="id"]')].find((node) => this.variantIds.has(String(node.value)));
-      const variantId = String(input?.value || new URL(location.href).searchParams.get("variant") || this.product.variantId);
-      const variant = this.variants.find((entry) => entry.variantId === variantId);
-      const selected = cleanProduct({ ...this.product, ...variant, variantId });
+      const input = form?.querySelector('[name="id"]') || (product === this.product
+        ? [...document.querySelectorAll('main form[action*="/cart/add"] [name="id"]')].find((node) => variantIds.has(String(node.value)))
+        : null);
+      const variantId = String(input?.value || (product === this.product ? new URL(location.href).searchParams.get("variant") : "") || product.variantId);
+      const variant = variants.find((entry) => entry.variantId === variantId);
+      const selected = cleanProduct({ ...product, ...variant, variantId });
       const url = new URL(selected.url, location.origin);
       if (selected.variantId) url.searchParams.set("variant", selected.variantId);
       selected.url = url.pathname + url.search;
       return selected;
     }
-    createControl(target) {
+    productFromSlot(slot) {
+      if (!slot.dataset.productId || !slot.dataset.productTitle || !slot.dataset.productUrl) return null;
+      const variantId = String(slot.dataset.variantId || "");
+      const variant = {
+        variantId,
+        variantTitle: slot.dataset.variantTitle || "",
+        price: slot.dataset.productPrice || "",
+        priceAmount: Number(slot.dataset.priceAmount),
+        sku: slot.dataset.productSku || "",
+        available: slot.dataset.productAvailable === "true",
+        image: slot.dataset.productImage || "",
+      };
+      return cleanProduct({
+        id: slot.dataset.productId,
+        title: slot.dataset.productTitle,
+        url: slot.dataset.productUrl,
+        variantIds: variantId ? [variantId] : [],
+        variantId,
+        variants: [variant],
+        ...variant,
+        vendor: slot.dataset.productVendor || "",
+        type: slot.dataset.productType || "",
+        description: "",
+        metafields: {},
+      });
+    }
+    createControl(target, product) {
       const wrapper = element("div", undefined, "product-compare-control");
       const text = element("span", "Add to comparison");
       let input;
@@ -280,7 +312,7 @@
         input.type = "checkbox";
         label.append(input, text);
         wrapper.append(label);
-        input.addEventListener("change", () => this.toggle(this.selection(target)), {
+        input.addEventListener("change", () => this.toggle(this.selection(target, product)), {
           signal: this.events.signal,
         });
       } else {
@@ -288,24 +320,26 @@
         input.type = "button";
         input.append(text);
         wrapper.append(input);
-        input.addEventListener("click", () => this.toggle(this.selection(target)), {
+        input.addEventListener("click", () => this.toggle(this.selection(target, product)), {
           signal: this.events.signal,
         });
       }
-      return { wrapper, input, text, target };
+      return { wrapper, input, text, target, product };
     }
     mountControls() {
-      const slots = [
-        ...document.querySelectorAll("product-comparison-slot"),
-      ].filter((slot) => slot.dataset.productId === this.product?.id);
-      for (const slot of slots) {
+      const slotProducts = new Map();
+      for (const slot of document.querySelectorAll("product-comparison-slot")) {
+        const product = slot.dataset.productId === this.product?.id
+          ? this.product
+          : this.productFromSlot(slot);
+        if (product) slotProducts.set(slot, product);
         const hint = slot.querySelector("[data-compare-editor-hint]");
-        if (hint) hint.hidden = true;
+        if (hint && product) hint.hidden = true;
       }
-      if (!this.product || this.excluded) return;
+      if (this.excluded) return;
       // A manually placed comparison block wins over automatic insertion.
-      const targets = slots.length
-        ? slots
+      const targets = slotProducts.size
+        ? [...slotProducts.keys()]
         : [...document.querySelectorAll('form[action*="/cart/add"]')]
             .filter((form) => {
               const variant = form.querySelector('[name="id"]');
@@ -337,9 +371,11 @@
         }
       }
       for (const target of targets) {
+        const product = slotProducts.get(target) || this.product;
+        if (!product) continue;
         if (this.controls.has(target)) { this.updateControl(this.controls.get(target)); continue; }
-        const control = this.createControl(target);
-        if (slots.includes(target)) target.append(control.wrapper);
+        const control = this.createControl(target, product);
+        if (slotProducts.has(target)) target.append(control.wrapper);
         else
           target.insertAdjacentElement(
             this.dataset.placement === "before" ? "beforebegin" : "afterend",
@@ -350,7 +386,7 @@
       }
     }
     updateControl(control) {
-      const selected = this.items.some((item) => item.key === this.selection(control.target)?.key);
+      const selected = this.items.some((item) => item.key === this.selection(control.target, control.product)?.key);
       if (control.input.type === "checkbox") control.input.checked = selected;
       else control.input.setAttribute("aria-pressed", String(selected));
       const label = selected ? "Remove from comparison" : "Add to comparison";

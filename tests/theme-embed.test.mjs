@@ -243,6 +243,40 @@ test("explicit block replaces automatic placement, without duplicates", (t) => {
     document.querySelector("product-comparison-slot .product-compare-control"),
   );
 });
+test("every collection card slot renders a control without a page-level product", (t) => {
+  const cards = Array.from({ length: 4 }, (_, index) => {
+    const number = index + 2;
+    return `<product-comparison-slot
+      data-product-id="${number}"
+      data-product-title="Collection product ${number}"
+      data-product-url="/products/collection-product-${number}"
+      data-product-image="https://cdn.shopify.com/collection-product-${number}.jpg"
+      data-product-price="USD 29.00"
+      data-price-amount="2900"
+      data-product-vendor="Test vendor"
+      data-product-type="Bag"
+      data-product-sku="BAG-${number}"
+      data-product-available="true"
+      data-variant-id="${number}2"
+      data-variant-title="Default Title"
+    ></product-comparison-slot>`;
+  }).join("");
+  const { document, app, window } = setup(
+    t,
+    { product: "null", display: "checkbox" },
+    cards,
+  );
+  app.mountControls();
+  const checkboxes = document.querySelectorAll("product-comparison-slot input");
+  assert.equal(checkboxes.length, 4);
+  const checkbox = checkboxes[0];
+  assert.equal(checkbox.type, "checkbox");
+  checkbox.click();
+  const saved = JSON.parse(window.localStorage.getItem(key));
+  assert.equal(saved[0].id, "2");
+  assert.equal(saved[0].variantId, "22");
+  assert.equal(saved[0].title, "Collection product 2");
+});
 test("forms for other products are not injected", (t) => {
   const { document } = setup(
     t,

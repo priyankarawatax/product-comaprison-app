@@ -458,9 +458,24 @@ export default function Dashboard() {
                         whiteSpace: "pre-wrap",
                       }}
                     >
-                      <code>{`{% unless product == blank or product.tags contains 'no-comparison' %}
+                      <code>{`{% liquid
+  assign comparison_product = card_product | default: product
+  assign comparison_variant = comparison_product.selected_or_first_available_variant
+%}
+{% unless comparison_product == blank or comparison_product.tags contains 'no-comparison' %}
   <product-comparison-slot
-    data-product-id="{{ product.id }}"
+    data-product-id="{{ comparison_product.id }}"
+    data-product-title="{{ comparison_product.title | escape }}"
+    data-product-url="{{ comparison_product.url }}"
+    data-product-image="{% if comparison_product.featured_image %}{{ comparison_product.featured_image | image_url: width: 600 }}{% endif %}"
+    data-product-price="{{ comparison_variant.price | money_with_currency | strip_html | escape }}"
+    data-price-amount="{{ comparison_variant.price }}"
+    data-product-vendor="{{ comparison_product.vendor | escape }}"
+    data-product-type="{{ comparison_product.type | escape }}"
+    data-product-sku="{{ comparison_variant.sku | escape }}"
+    data-product-available="{{ comparison_variant.available }}"
+    data-variant-id="{{ comparison_variant.id }}"
+    data-variant-title="{{ comparison_variant.title | escape }}"
   ></product-comparison-slot>
 {% endunless %}`}</code>
                     </pre>
