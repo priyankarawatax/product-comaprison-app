@@ -1,7 +1,7 @@
 /* eslint-env node */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { selectedRules, scoreVariant, rankProducts } from "../app/product-finder/scoring.ts";
+import { selectedRules, scoreVariant, rankMatchingProducts, rankProducts } from "../app/product-finder/scoring.ts";
 import { loadFinderCatalog, catalogQuery } from "../app/product-finder/catalog.server.ts";
 
 const rule = (field, operator, value, weight = 2) => ({ id: field, label: field, field, operator, value, weight });
@@ -32,6 +32,16 @@ test("zero matches and zero total weight produce no fake recommendations", () =>
   assert.deepEqual(rankProducts([base], [rule("vendor", "equals", "Unknown")], 3), []);
   assert.deepEqual(rankProducts([base], [], 3), []);
   assert.equal(scoreVariant({ ...base, metafields: { "custom.ram": "" } }, [rule("metafield.custom.ram", "less_than", "1")]), 0);
+});
+test("Flexible skips its price constraint while other selected filters still apply", () => {
+  const tote = { ...base, id: "2", productType: "Tote Bag", price: 2625 };
+  const shirt = { ...base, id: "3", productType: "Shirts", price: 50 };
+  const selections = [
+    { questionId: "type", answers: [rule("product_type", "equals", "Tote Bag")] },
+    { questionId: "price", answers: [{ ...rule("price", "equals", "0"), label: "Flexible" }] },
+  ];
+  const result = rankMatchingProducts([tote, shirt], selections, 0, 10);
+  assert.deepEqual(result.products.map((product) => product.id), ["2"]);
 });
 test("ties prefer available then lower-priced variants; limit is respected", () => {
   const products = [{ ...base, id: "2", variantId: "21", price: 10, available: false }, base, { ...base, id: "3", variantId: "31", price: 40 }];

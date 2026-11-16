@@ -36,7 +36,9 @@ export function selectedRules(input: unknown, finder: { id: string; version: num
   });
 }
 const normalized = (value: unknown) => String(value).trim().toLowerCase();
+const noPreferenceLabels = new Set(["any", "any option", "any price", "doesn't matter", "flexible", "no preference"]);
 function matches(actual: unknown, rule: FinderAnswer): boolean {
+  if (noPreferenceLabels.has(normalized(rule.label))) return true;
   if (actual === null || actual === undefined) return false;
   if (Array.isArray(actual)) return actual.some((value) => matches(value, rule));
   if (!["string", "number", "boolean"].includes(typeof actual)) return false;
