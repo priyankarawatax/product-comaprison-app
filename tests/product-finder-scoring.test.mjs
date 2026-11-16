@@ -53,7 +53,7 @@ const variant = (id, overrides = {}) => ({
   id: "gid://shopify/ProductVariant/" + id, price: "50", title: "Red", availableForSale: true,
   selectedOptions: base.options,
   product: { id: "gid://shopify/Product/" + id, handle: "shirt-" + id, title: "Shirt", vendor: "Brand", productType: "Shirts",
-    tags: [], status: "ACTIVE", onlineStoreUrl: "https://shop.myshopify.com/products/shirt-" + id, publishedInContext: true, ...overrides },
+    tags: [], status: "ACTIVE", onlineStoreUrl: "https://shop.myshopify.com/products/shirt-" + id, ...overrides },
 });
 test("catalog paginates, isolates shops/collections and coalesces identical cache loads", async () => {
   const calls = [];
@@ -76,7 +76,7 @@ test("catalog paginates, isolates shops/collections and coalesces identical cach
 });
 test("private products are filtered and only configured metafield aliases are read", async () => {
   const admin = { graphql: async () => ({ json: async () => ({ data: { productVariants: {
-    nodes: [variant("1", { publishedInContext: false }), variant("2", { status: "DRAFT" }),
+    nodes: [variant("1", { onlineStoreUrl: null }), variant("2", { status: "DRAFT" }),
       variant("3", { mf0: { type: "list.number_integer", value: '["8","16"]' } })],
     pageInfo: { hasNextPage: false, endCursor: "last" },
   } } }) }) };

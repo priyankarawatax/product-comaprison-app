@@ -10,7 +10,7 @@ type VariantNode = {
   contextualPricing?: { price?: { amount?: string; currencyCode?: string } | null } | null;
   selectedOptions: { name: string; value: string }[];
   product: { id: string; handle: string; title: string; vendor: string; productType: string;
-    tags: string[]; status: string; onlineStoreUrl: string | null; publishedInContext?: boolean } & Record<string, unknown>;
+    tags: string[]; status: string; onlineStoreUrl: string | null } & Record<string, unknown>;
 };
 const cache = new Map<string, { expires: number; pending: boolean; result: Promise<Candidate[]> }>();
 const requests = new Map<string, { expires: number; count: number }>();
@@ -34,7 +34,7 @@ export function catalogQuery(fields: string[]) {
         nodes {
           id title price availableForSale selectedOptions { name value }
           contextualPricing(context: { country: $country }) { price { amount currencyCode } }
-          product { id handle title vendor productType tags status onlineStoreUrl publishedInContext(context: { country: $country }) ${aliases} }
+          product { id handle title vendor productType tags status onlineStoreUrl ${aliases} }
         }
         pageInfo { hasNextPage endCursor }
       }
@@ -116,7 +116,7 @@ async function readCatalog(admin: AdminApiContext, fields: string[], filter: str
       const product = variant.product;
       const contextual = variant.contextualPricing?.price;
       const amount = Number(contextual?.amount ?? variant.price);
-      if (product.status !== "ACTIVE" || product.publishedInContext !== true || !Number.isFinite(amount)) continue;
+      if (product.status !== "ACTIVE" || !product.onlineStoreUrl || !Number.isFinite(amount)) continue;
       candidates.push({
         id: product.id.split("/").pop()!, variantId: variant.id.split("/").pop()!, title: product.title,
         handle: product.handle, price: amount, currencyCode: contextual?.currencyCode, available: variant.availableForSale,
