@@ -146,8 +146,11 @@ export async function loadResults(app, append = false) {
     app.resultState = "ready";
   } catch (error) {
     if (controller !== app.resultController || !app.isConnected || !app.complete) return;
+    console.error("Product Finder recommendations failed.", error);
     app.resultState = "error";
-    app.resultsError = controller.signal.aborted ? "Recommendations took too long. Please try again." : error.message;
+    app.resultsError = controller.signal.aborted
+      ? "Recommendations took too long. Please try again."
+      : "We couldn't load your recommendations. Please try again.";
   } finally {
     window.clearTimeout(timer);
     if (controller === app.resultController && app.isConnected && app.complete) app.renderStep(true);
@@ -177,7 +180,8 @@ export async function compareProducts(app, products, open = false) {
       if (compare.isConnected) compare.openComparison();
     }
   } catch (error) {
-    app.compareError = error.message || "Comparison is unavailable. Please try again.";
+    console.error("Product Finder comparison failed.", error);
+    app.compareError = "Comparison is unavailable. Please try again.";
   } finally {
     app.comparing = false;
     if (app.isConnected && app.complete) app.renderStep(false);
@@ -192,7 +196,13 @@ async function addToCart(app, product, button) {
     if (!response.ok) throw new Error("Could not add this product to cart.");
     button.textContent = "Added to cart";
     document.dispatchEvent(new CustomEvent("cart:refresh", { bubbles: true }));
-  } catch (error) { button.disabled = false; button.textContent = "Add to cart"; app.resultsError = error.message; app.renderStep(false); }
+  } catch (error) {
+    console.error("Product Finder add to cart failed.", error);
+    button.disabled = false;
+    button.textContent = "Add to cart";
+    app.resultsError = "We couldn't add this product to your cart. Please try again.";
+    app.renderStep(false);
+  }
 }
 export function renderResults(app) {
   const area = app.querySelector("[data-finder-step]");

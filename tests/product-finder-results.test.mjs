@@ -62,14 +62,20 @@ test("results do not show a compare-all button", (t) => {
   window.Storage.prototype.setItem = () => { throw new Error("Storage blocked"); };
   await api.compareProducts(app, [product]);
   assert.equal(compare.items.length, 0);
-  assert.match(app.compareError, /storage/i);
+  assert.match(app.compareError, /Comparison is unavailable/i);
+  assert.doesNotMatch(app.compareError, /Storage blocked/i);
 });
 test("recommendation errors offer retry; empty results are not shown as fake matches", async (t) => {
   const { app, window, api } = setup(t);
   window.fetch = async () => ({ ok: false, json: async () => ({ error: "Quiz changed. Refresh." }) });
   await api.loadResults(app);
   assert.equal(app.resultState, "error");
-  assert.match(app.textContent, /Quiz changed/);
+  assert.match(app.textContent, /couldn't load your recommendations/i);
+  assert.doesNotMatch(app.textContent, /Quiz changed/);
+  window.fetch = async () => ({ ok: true, json: async () => { throw new SyntaxError("Unexpected token '<', \"<!doctype\" is not valid JSON"); } });
+  await api.loadResults(app);
+  assert.match(app.textContent, /couldn't load your recommendations/i);
+  assert.doesNotMatch(app.textContent, /Unexpected token|doctype|valid JSON/i);
   window.fetch = async () => ({ ok: true, json: async () => ({ heading: "Matches", products: [] }) });
   await api.loadResults(app);
   assert.equal(app.resultState, "ready");
