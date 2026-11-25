@@ -38,6 +38,7 @@ export default function App() {
         <Link to="/app/analytics">Analytics</Link>
         <Link to="/app/table-settings">Table settings</Link>
         <Link to="/app/product-finder">Product Finder</Link>
+        <Link to="/app/wishlist">Wishlist</Link>
         <Link to="/app/billing">Plans & Billing</Link>
       </NavMenu>
       <FeatureRequest />

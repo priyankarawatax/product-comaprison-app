@@ -61,8 +61,42 @@ model Store {
   subscription        Subscription?
   productFinder       ProductFinder?
   featureRequests     FeatureRequest[]
+  wishlistSettings    WishlistSettings?
+  wishlistItems       WishlistItem[]
 
   @@map("stores")
+}
+
+model WishlistSettings {
+  id                  BigInt   @id @default(autoincrement())
+  storeId             BigInt   @unique
+  store               Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  enabled             Boolean  @default(false)
+  generalSettings     Json
+  buttonSettings      Json
+  pageSettings        Json
+  textSettings        Json
+  setupGuideDismissed Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("wishlist_settings")
+}
+
+model WishlistItem {
+  id                BigInt   @id @default(autoincrement())
+  storeId           BigInt
+  store             Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  shopifyCustomerId String   @db.VarChar(64)
+  shopifyProductId  String   @db.VarChar(64)
+  shopifyVariantId  String?  @db.VarChar(64)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([storeId, shopifyCustomerId, shopifyProductId])
+  @@index([storeId, shopifyCustomerId, createdAt])
+  @@index([storeId, shopifyProductId])
+  @@map("wishlist_items")
 }
 
 model FeatureRequest {
