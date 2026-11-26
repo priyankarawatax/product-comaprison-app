@@ -45,7 +45,7 @@ export default function Wishlist() {
   const patch = <K extends keyof WishlistSettingsDraft>(key: K, value: WishlistSettingsDraft[K]) => setDraft((old) => ({ ...old, [key]: value }));
   const patchSection = <K extends "general" | "button" | "page" | "text">(key: K, value: Partial<WishlistSettingsDraft[K]>) => setDraft((old) => ({ ...old, [key]: { ...old[key], ...value } }));
   const option = (value: string) => value.replaceAll("_", " ").replace(/\b\w/g, (m) => m.toUpperCase());
-  return <s-page heading="Wishlist"><s-paragraph>Allow customers to save their favorite products and return to purchase them later.</s-paragraph>
+  return <s-page heading="Wishlist settings"><s-paragraph>Allow customers to save their favorite products and return to purchase them later.</s-paragraph>
     <SaveBar id="wishlist-save-bar" open={dirty || saving}><button variant="primary" disabled={saving} onClick={() => submit(draft)}>Save</button><button disabled={saving} onClick={() => setDraft(baseline)}>Discard</button></SaveBar>
     {fetcher.data?.error && <s-banner tone="critical">{fetcher.data.error}</s-banner>}
     <s-section heading="General settings"><s-stack gap="base"><s-switch label="Enable Wishlist functionality" checked={draft.enabled} onChange={(e) => patch("enabled", readToggle(e.currentTarget.checked, draft.enabled))} /><Switches values={draft.general} onChange={(key, value) => patchSection("general", { [key]: value })} /></s-stack></s-section>
