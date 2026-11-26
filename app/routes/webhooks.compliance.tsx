@@ -15,7 +15,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       break;
 
     case "CUSTOMERS_REDACT":
-      // This app doesn't persist data keyed by a Shopify customer ID.
+      {
+        const payload = await request.clone().json().catch(() => null) as { customer?: { id?: number | string } } | null;
+        const customerId = payload?.customer?.id == null ? "" : String(payload.customer.id);
+        if (/^[1-9][0-9]{0,19}$/.test(customerId)) {
+          const store = await db.store.findUnique({ where: { shop }, select: { id: true } });
+          if (store) await db.wishlistItem.deleteMany({ where: { storeId: store.id, shopifyCustomerId: customerId } });
+        }
+      }
       break;
 
     case "SHOP_REDACT":

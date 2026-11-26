@@ -1,0 +1,3 @@
+import type { LoaderFunctionArgs } from "react-router";
+import { resolveWishlistStore, response, verifiedProxyContext } from "../wishlist/api.server";
+export async function loader({ request }: LoaderFunctionArgs) { if (request.method !== "GET") return response(405); try { const auth = await verifiedProxyContext(request); if (!auth) return response(403, { error: "Unauthorized" }); const store = await resolveWishlistStore(auth.shop); if (!store) return response(404, { error: "Store not found" }); return response(200, { enabled: store.settings.enabled, authenticated: Boolean(auth.customerId), customerWishlistAllowed: store.settings.general.allowCustomers }); } catch { return response(503, { error: "Wishlist unavailable" }); } }
