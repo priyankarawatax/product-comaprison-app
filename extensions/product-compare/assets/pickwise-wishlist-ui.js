@@ -3,30 +3,38 @@
   const updateButtons = () => { document.querySelectorAll("[data-pickwise-wishlist-product]").forEach((host) => { const id = host.dataset.productId; const active = state.items.has(key(id)); const button = host.querySelector("button"); if (button) { button.setAttribute("aria-pressed", String(active)); button.setAttribute("aria-label", active ? state.settings.text.addedToWishlist : state.settings.text.addToWishlist); const heart = button.querySelector("[data-heart]"); if (heart) heart.textContent = active || state.settings.button.iconStyle === "filled" ? "♥" : "♡"; } }); };   const makeButton = (host) => { if (host.querySelector(".pickwise-wishlist-button")) return; if (host.hasAttribute("data-pickwise-product-block") && !state.settings.general.showOnProductPages) return; if (state.root.dataset.customer !== "1" && !state.settings.general.allowGuests) return; const b = state.settings.button; const button = document.createElement("button"); button.type = "button"; button.className = `pickwise-wishlist-button${b.type === "icon" ? " pickwise-wishlist-button--icon-only" : ""}`; button.dataset.pickwiseToggle = ""; button.style.setProperty("--pwl-color", b.defaultIconColor); button.style.setProperty("--pwl-active", b.activeIconColor); button.style.setProperty("--pwl-bg", b.backgroundColor); button.style.setProperty("--pwl-border", b.borderColor); button.style.setProperty("--pwl-radius", `${b.borderRadius}px`); button.style.setProperty("--pwl-padding", `${b.padding}px`); button.style.color = b.textColor; if (b.type !== "text") { const heart = document.createElement("span"); heart.dataset.heart = ""; heart.style.fontSize = `${b.iconSize}px`; heart.setAttribute("aria-hidden", "true"); button.append(heart); } if (b.type !== "icon") button.append(document.createTextNode(state.settings.text.addToWishlist)); button.setAttribute("aria-pressed", "false"); host.append(button); };   const positionProductButton = (host) => { if (!host.hasAttribute("data-pickwise-product-block")) return; const textButton = state.settings.button.type !== "icon"; if (textButton) { const buyButtons = document.querySelector(".product-form__buttons"); if (!buyButtons || buyButtons.previousElementSibling === host) return; host.classList.remove("pickwise-wishlist-pdp-overlay"); host.classList.add("pickwise-wishlist-pdp-before-buy"); buyButtons.before(host); return; } if (state.settings.button.productPosition !== "image_overlay") return; const media = document.querySelector(".product__media-wrapper, .product__media-list"); if (!media || media.contains(host)) return; host.classList.remove("pickwise-wishlist-pdp-before-buy"); host.classList.add("pickwise-wishlist-pdp-overlay"); media.style.position ||= "relative"; media.append(host); };   const addCardButtons = (scope = document) => { if (!state.settings?.enabled || !state.settings.general.showOnProductCards) return; const adapter = { dawn: "li.grid__item, .product-grid li, .card-wrapper" }; const cards = scope.querySelectorAll(adapter.dawn); cards.forEach((card) => { const link = card.querySelector('a[href*="/products/"]'); const id = card.querySelector("[data-product-id]")?.dataset.productId || link?.getAttribute("href")?.match(/products\/([^/?]+)/)?.[1]; const productJson = card.querySelector("script[type='application/json']"); let numeric = id; if (!numeric && productJson) { try { numeric = JSON.parse(productJson.textContent || "{}").id; } catch {} } if (!numeric || !/^\d+$/.test(String(numeric))) return; let host = card.querySelector("[data-pickwise-wishlist-product]"); if (!host) { host = document.createElement("span"); host.className = "pickwise-wishlist-product"; host.dataset.pickwiseWishlistProduct = ""; host.dataset.productId = String(numeric); const media = card.querySelector(".card__inner, .card__media"); if (!media) return; if (state.settings.button.type === "icon") { media.style.position ||= "relative"; media.append(host); } else { media.after(host); host.classList.add("pickwise-wishlist-card-below-image"); } } makeButton(host); }); };   const resolveCardHandles = async (scope = document) => { if (!state.settings?.enabled || !state.settings.general.showOnProductCards) return; const cards = [...scope.querySelectorAll("li.grid__item, .product-grid li, .card-wrapper")]; const unresolved = cards.map((card) => ({ card, link: card.querySelector('a[href*="/products/"]') })).filter(({ card, link }) => link && !card.querySelector("[data-pickwise-wishlist-product]")); const handles = [...new Set(unresolved.map(({ link }) => link.getAttribute("href")?.match(/\/products\/([^/?#]+)/)?.[1]).filter(Boolean))]; if (!handles.length) { addCardButtons(scope); return; } try { const url = new URL(endpoint(state.root, "settings"), location.href); url.pathname = url.pathname.replace(/settings\/?$/, "products"); url.searchParams.set("handles", handles.join(",")); const result = await request(url.href); const products = new Map((result.products || []).map((p) => [p.handle, p])); unresolved.forEach(({ card, link }) => { const handle = link.getAttribute("href")?.match(/\/products\/([^/?#]+)/)?.[1]; const product = products.get(handle); if (!product?.id) return; const host = document.createElement("span"); host.className = "pickwise-wishlist-product"; host.dataset.pickwiseWishlistProduct = ""; host.dataset.productId = String(product.id); host.dataset.variantId = String(product.variantId || ""); const media = card.querySelector(".card__inner, .card__media"); if (media) { if (state.settings.button.type === "icon") { media.style.position ||= "relative"; media.append(host); } else { media.after(host); host.classList.add("pickwise-wishlist-card-below-image"); } makeButton(host); } }); } catch { addCardButtons(scope); } };  const mount = () => { if (!state?.ready) return; document.querySelectorAll("[data-pickwise-wishlist-product]").forEach((host) => { makeButton(host); positionProductButton(host); }); void resolveCardHandles(); document.querySelectorAll("[data-pickwise-wishlist-nav]").forEach((nav) => { nav.hidden = false; if (state.root.dataset.pageUrl) nav.href = state.root.dataset.pageUrl; }); updateButtons(); };
   const ensureHeaderLink = () => {
     if (!state?.ready) return;
-    const link = document.querySelector("[data-pickwise-wishlist-nav]");
-    const pageUrl = link?.href || state.root.dataset.pageUrl;
+    let link = document.querySelector("[data-pickwise-wishlist-nav]");
     const shopRoot = new URL(state.root.dataset.shopRoot || "/", location.href).pathname;
+    const configuredPageUrl = state.root.dataset.pageUrl;
+    const pageUrl = configuredPageUrl && new URL(configuredPageUrl, location.href).pathname !== shopRoot ? configuredPageUrl : link?.href;
     if (!pageUrl || new URL(pageUrl, location.href).pathname === shopRoot) return;
-    const menu = document.querySelector(".header__inline-menu > ul, header nav ul.list-menu--inline, header nav ul");
-    if (!menu || link?.closest("header")) return;
-    const item = document.createElement("li");
-    item.className = "pickwise-wishlist-header-item";
-    if (link) {
-      link.hidden = false;
-      link.href = pageUrl;
-      item.append(link);
-    } else {
-      const anchor = document.createElement("a");
-      anchor.href = pageUrl;
-      anchor.className = "header__menu-item list-menu__item link link--text focus-inset";
-      anchor.setAttribute("aria-label", "Wishlist");
-      anchor.dataset.pickwiseWishlistNav = "";
-      const label = document.createElement("span");
-      label.textContent = "Wishlist";
-      anchor.append(label);
-      item.append(anchor);
+    const icons = document.querySelector("header .header__icons, .header__icons");
+    if (!icons) return;
+    if (!link) {
+      link = document.createElement("a");
+      link.dataset.pickwiseWishlistNav = "";
     }
-    menu.append(item);
+    if (!link.classList.contains("pickwise-wishlist-header-link")) {
+      link.replaceChildren();
+      const heart = document.createElement("span");
+      heart.className = "pickwise-wishlist-header-heart";
+      heart.setAttribute("aria-hidden", "true");
+      heart.textContent = "♡";
+      link.append(heart);
+      const count = document.createElement("span");
+      count.className = "pickwise-wishlist-header-count";
+      count.dataset.pickwiseWishlistCount = "";
+      count.textContent = "0";
+      link.append(count);
+    }
+    link.href = pageUrl;
+    link.hidden = false;
+    link.classList.add("header__icon", "link", "focus-inset", "pickwise-wishlist-header-link");
+    link.setAttribute("aria-label", "Wishlist");
+    link.title = "Wishlist";
+    const account = icons.querySelector(".header__icon--account, a[href*='/account'], summary.header__icon");
+    const cart = icons.querySelector("#cart-icon-bubble, a[href*='/cart']");
+    icons.insertBefore(link, account || cart || null);
   };
   document.addEventListener("pickwise-wishlist:runtime-ready", (event) => { ({ state, endpoint, request, key, toggle } = event.detail); mount(); ensureHeaderLink(); });
   document.addEventListener("pickwise-wishlist:refresh", updateButtons);
