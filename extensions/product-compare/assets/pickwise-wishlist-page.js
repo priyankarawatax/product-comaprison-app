@@ -1,14 +1,25 @@
 (() => {
   const LIMIT = 300;
   let state, endpoint, request, key, toggle;
+  const loadProducts = async (ids) => {
+    const products = [];
+    for (let offset = 0; offset < ids.length; offset += 50) {
+      const url = new URL(endpoint(state.root, "settings"), location.href);
+      url.pathname = url.pathname.replace(/settings\/?$/, "products");
+      url.searchParams.set("ids", ids.slice(offset, offset + 50).join(","));
+      const result = await request(url.href);
+      products.push(...(result.products || []));
+    }
+    return products;
+  };
   const renderPage = async () => {
     const page = document.querySelector("[data-pickwise-wishlist-page]");
     if (!page || !state.settings?.enabled) return;
     const mount = page.querySelector(".pickwise-wishlist-page-mount"); if (!mount) return;
     const settings = state.settings.page; mount.style.setProperty("--pwl-page-bg", settings.backgroundColor); mount.style.setProperty("--pwl-page-text", settings.textColor);
     if (!state.items.size) { const empty = document.createElement("div"); empty.className = "pickwise-wishlist-empty"; const message = document.createElement("p"); message.textContent = state.settings.text.emptyWishlist; empty.append(message); if (settings.showContinueShopping) { const go = document.createElement("a"); go.className = "pickwise-wishlist-button"; go.href = state.root.dataset.pageUrl || "/collections/all"; go.textContent = state.settings.text.continueShopping; empty.append(go); } mount.replaceChildren(empty); return; }
-    if (!state.products || state.productCacheIds !== [...state.items.keys()].join(",")) { mount.textContent = "Loading your wishlist…"; try { const url = new URL(endpoint(state.root, "settings"), location.href); url.pathname = url.pathname.replace(/settings\/?$/, "products"); url.searchParams.set("ids", [...state.items.keys()].slice(0, LIMIT).join(",")); const result = await request(url.href); state.products = result.products || []; state.productCacheIds = [...state.items.keys()].join(","); } catch { const message = document.createElement("p"); message.textContent = "Wishlist could not be loaded."; const retry = document.createElement("button"); retry.type = "button"; retry.className = "pickwise-wishlist-button"; retry.textContent = "Retry"; retry.addEventListener("click", () => { state.products = null; renderPage(); }); mount.replaceChildren(message, retry); return; } }
-    const title = document.createElement("h2"); title.textContent = settings.title || state.settings.text.myWishlist;
+    if (!state.products || state.productCacheIds !== [...state.items.keys()].join(",")) { mount.textContent = "Loading your wishlist…"; try { const ids = [...state.items.keys()].slice(0, LIMIT); state.products = await loadProducts(ids); state.productCacheIds = ids.join(","); } catch { const message = document.createElement("p"); message.textContent = "Wishlist could not be loaded."; const retry = document.createElement("button"); retry.type = "button"; retry.className = "pickwise-wishlist-button"; retry.textContent = "Retry"; retry.addEventListener("click", () => { state.products = null; renderPage(); }); mount.replaceChildren(message, retry); return; } }
+    const title = document.createElement("h1"); title.textContent = settings.title || state.settings.text.myWishlist;
     const grid = document.createElement("div"); grid.className = settings.layout === "list" ? "pickwise-wishlist-grid pickwise-wishlist-list" : "pickwise-wishlist-grid"; grid.style.setProperty("--pwl-columns", String(settings.productsPerRow));
     const productById = new Map(state.products.map((product) => [key(product.id), product]));
     const visibleProducts = [...state.products, ...[...state.items.keys()].filter((id) => !productById.has(key(id))).map((id) => ({ id, title: "Unavailable product", unavailable: true }))];
