@@ -1,4 +1,4 @@
 {% if product != blank %}<div class="pickwise-wishlist-product" data-pickwise-wishlist-product data-pickwise-product-block data-product-id="{{ product.id }}" data-variant-id="{{ product.selected_or_first_available_variant.id }}" data-title="{{ product.title | escape }}" data-product-url="{{ product.url }}" {{ block.shopify_attributes }}></div>{% endif %}
 {% schema %}
-{"name":"Wishlist button","target":"section","javascript":"pickwise-wishlist.js","stylesheet":"pickwise-wishlist.css","settings":[]}
+{"name":"Wishlist button","target":"section","stylesheet":"pickwise-wishlist.css","settings":[]}
 {% endschema %}

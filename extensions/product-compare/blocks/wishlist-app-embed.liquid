@@ -1,4 +1,7 @@
 <div class="pickwise-wishlist-root" data-pickwise-wishlist data-settings-url="{{ routes.root_url }}apps/product-comparison/wishlist/settings" data-session-url="{{ routes.root_url }}apps/product-comparison/wishlist/session" data-items-url="{{ routes.root_url }}apps/product-comparison/wishlist/items" data-add-url="{{ routes.root_url }}apps/product-comparison/wishlist/add" data-remove-url="{{ routes.root_url }}apps/product-comparison/wishlist/remove" data-merge-url="{{ routes.root_url }}apps/product-comparison/wishlist/merge" data-shop="{{ shop.permanent_domain | escape }}" data-customer="{% if customer %}1{% else %}0{% endif %}" data-page-url="{{ pages[block.settings.wishlist_page].url | default: routes.root_url | escape }}" data-shop-root="{{ routes.root_url | escape }}" {{ block.shopify_attributes }}></div>
+<script defer src="{{ 'pickwise-wishlist.js' | asset_url }}"></script>
+<script defer src="{{ 'pickwise-wishlist-ui.js' | asset_url }}"></script>
+<script defer src="{{ 'pickwise-wishlist-page.js' | asset_url }}"></script>
 {% schema %}
-{"name":"Pickwise Wishlist","target":"body","javascript":"pickwise-wishlist.js","stylesheet":"pickwise-wishlist.css","settings":[{"type":"page","id":"wishlist_page","label":"Wishlist page"}]}
+{"name":"Pickwise Wishlist","target":"body","stylesheet":"pickwise-wishlist.css","settings":[{"type":"page","id":"wishlist_page","label":"Wishlist page"}]}
 {% endschema %}
