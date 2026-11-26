@@ -182,13 +182,13 @@
   </template>
 </product-compare-app>
 {% render 'product-finder' %}
+<script defer src="{{ 'product-compare.js' | asset_url }}"></script>
 <script type="module" src="{{ 'product-compare-analytics.js' | asset_url }}"></script>
 
 {% schema %}
 {
   "name": "Product Compare",
   "target": "body",
-  "javascript": "product-compare.js",
   "stylesheet": "product-compare.css",
   "settings": [
     { "type": "header", "content": "Main comparison button" },
