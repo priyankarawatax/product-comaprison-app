@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { data, useFetcher, useLoaderData } from "react-router";
 import { SaveBar, useAppBridge } from "@shopify/app-bridge-react";
-import styles from "./app.wishlist.module.css";
+import styles from "../styles/wishlist-admin.module.css";
 import { authenticate } from "../shopify.server";
 import { defaultWishlistSettings, validateWishlistSettings, type WishlistSettingsDraft } from "../wishlist/config";
 import { getWishlistSettings, resetWishlistSettings, saveWishlistSettings, updateWishlistSetupGuide } from "../wishlist/wishlist.server";
