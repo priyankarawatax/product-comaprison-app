@@ -73,6 +73,8 @@ export default function Wishlist() {
       <s-number-field label="Border radius" value={String(draft.button.borderRadius)} min={0} max={40} onChange={(e) => patchSection("button", { borderRadius: Number(e.currentTarget.value) })} />
       <s-number-field label="Icon size" value={String(draft.button.iconSize)} min={12} max={48} onChange={(e) => patchSection("button", { iconSize: Number(e.currentTarget.value) })} />
       <s-number-field label="Padding" value={String(draft.button.padding)} min={4} max={32} onChange={(e) => patchSection("button", { padding: Number(e.currentTarget.value) })} />
+      <s-color-field label="Heart icon color" value={draft.button.defaultIconColor} onInput={(e) => patchSection("button", { defaultIconColor: e.currentTarget.value })} />
+      <s-color-field label="Heart background color" value={draft.button.iconBackgroundColor} onInput={(e) => patchSection("button", { iconBackgroundColor: e.currentTarget.value })} />
       <s-select label="Position on product cards" value={draft.button.cardPosition} onChange={(e) => patchSection("button", { cardPosition: e.currentTarget.value as WishlistSettingsDraft["button"]["cardPosition"] })}>{["top_left", "top_right", "bottom_left", "bottom_right"].map((v) => <s-option key={v} value={v}>{option(v)}</s-option>)}</s-select>
       </s-grid></s-stack></s-section>}
       {activeTab === "page" && <s-section heading=""><s-grid gridTemplateColumns="repeat(2,minmax(0,1fr))" gap="large" alignItems="start">

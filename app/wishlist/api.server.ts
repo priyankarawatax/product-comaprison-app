@@ -38,7 +38,7 @@ export async function resolveWishlistStore(shop: string) {
   if (!store) return null;
   if (!store.wishlistSettings) return { id: store.id, settings: structuredClone(defaultWishlistSettings) };
   const row = store.wishlistSettings;
-  const settings: WishlistSettingsDraft = { enabled: row.enabled, general: row.generalSettings as WishlistSettingsDraft["general"], button: row.buttonSettings as WishlistSettingsDraft["button"], page: row.pageSettings as WishlistSettingsDraft["page"], text: row.textSettings as WishlistSettingsDraft["text"], setupGuideDismissed: false };
+  const settings: WishlistSettingsDraft = { enabled: row.enabled, general: { ...defaultWishlistSettings.general, ...(row.generalSettings as WishlistSettingsDraft["general"]) }, button: { ...defaultWishlistSettings.button, ...(row.buttonSettings as Partial<WishlistSettingsDraft["button"]>) }, page: { ...defaultWishlistSettings.page, ...(row.pageSettings as Partial<WishlistSettingsDraft["page"]>) }, text: { ...defaultWishlistSettings.text, ...(row.textSettings as Partial<WishlistSettingsDraft["text"]>) }, setupGuideDismissed: false };
   return { id: store.id, settings };
 }
 

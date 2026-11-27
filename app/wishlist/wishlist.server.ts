@@ -3,7 +3,7 @@ import db from "../db.server";
 import { defaultWishlistSettings, type WishlistSettingsDraft } from "./config";
 
 type SettingsRow = { enabled: boolean; generalSettings: unknown; buttonSettings: unknown; pageSettings: unknown; textSettings: unknown; setupGuideDismissed: boolean };
-const toDraft = (row: SettingsRow): WishlistSettingsDraft => ({ enabled: row.enabled, general: row.generalSettings as WishlistSettingsDraft["general"], button: row.buttonSettings as WishlistSettingsDraft["button"], page: row.pageSettings as WishlistSettingsDraft["page"], text: row.textSettings as WishlistSettingsDraft["text"], setupGuideDismissed: row.setupGuideDismissed });
+const toDraft = (row: SettingsRow): WishlistSettingsDraft => ({ enabled: row.enabled, general: { ...defaultWishlistSettings.general, ...(row.generalSettings as WishlistSettingsDraft["general"]) }, button: { ...defaultWishlistSettings.button, ...(row.buttonSettings as Partial<WishlistSettingsDraft["button"]>) }, page: { ...defaultWishlistSettings.page, ...(row.pageSettings as Partial<WishlistSettingsDraft["page"]>) }, text: { ...defaultWishlistSettings.text, ...(row.textSettings as Partial<WishlistSettingsDraft["text"]>) }, setupGuideDismissed: row.setupGuideDismissed });
 
 export async function getWishlistSettings(shop: string) {
   const store = await db.store.findUnique({ where: { shop }, select: { wishlistSettings: true } });

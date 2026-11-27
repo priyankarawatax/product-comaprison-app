@@ -1,6 +1,6 @@
 (() => {
   const LIMIT = 300;
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 16;
   let state, endpoint, request, key, toggle, cartVariantIds, cartVariantIdsPromise, currentPage = 1;
   const loadCartVariantIds = () => {
     if (cartVariantIds) return Promise.resolve(cartVariantIds);
