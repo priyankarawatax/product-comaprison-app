@@ -40,19 +40,17 @@ function Switches({ values, onChange }: { values: Record<string, boolean>; onCha
 export default function Wishlist() {
   const initial = useLoaderData<typeof loader>(); const fetcher = useFetcher<typeof action>(); const shopify = useAppBridge();
   const [draft, setDraft] = useState(initial.settings); const [baseline, setBaseline] = useState(initial.settings); const applied = useRef<unknown>(null);
-  type SettingsTab = "general" | "button" | "page" | "text";
+  type SettingsTab = "general" | "button" | "page";
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const tabs: Array<{ id: SettingsTab; label: string }> = [
     { id: "general", label: "General settings" },
     { id: "button", label: "Wishlist button" },
     { id: "page", label: "Wishlist page" },
-    { id: "text", label: "Text customization" },
   ];
   const tabDetails: Record<SettingsTab, { eyebrow: string; description: string; icon: string }> = {
     general: { eyebrow: "Wishlist setup", description: "Choose where Wishlist appears and who can save products.", icon: "⚙" },
     button: { eyebrow: "Storefront appearance", description: "Set the Wishlist button style and where it appears on product cards.", icon: "♡" },
     page: { eyebrow: "Storefront appearance", description: "Choose which product details and actions customers see on the Wishlist page.", icon: "▤" },
-    text: { eyebrow: "Storefront labels", description: "Customize the messages and labels customers see in Wishlist.", icon: "Aa" },
   };
   const pageToggleLabels = { showImage: "Show image", showTitle: "Show title", showPrice: "Show price", showAvailability: "Show availability", showAddToCart: "Show Add to Cart", showRemove: "Show remove button", showContinueShopping: "Show Continue Shopping" } as const;
   const saving = fetcher.state !== "idle"; const dirty = JSON.stringify(draft) !== JSON.stringify(baseline);
@@ -81,7 +79,6 @@ export default function Wishlist() {
         <s-stack gap="base"><s-text-field label="Wishlist page title" value={draft.page.title} maxLength={120} onInput={(e) => patchSection("page", { title: e.currentTarget.value })} /><s-select label="Products per row on desktop" value={String(draft.page.productsPerRow)} onChange={(e) => patchSection("page", { productsPerRow: Number(e.currentTarget.value) as 2 | 3 | 4 | 5 })}>{[2,3,4,5].map((v) => <s-option key={v} value={String(v)}>{v}</s-option>)}</s-select><s-grid gridTemplateColumns="repeat(2,minmax(0,1fr))" gap="base"><s-color-field label="Page background color" value={draft.page.backgroundColor} onInput={(e) => patchSection("page", { backgroundColor: e.currentTarget.value })} /><s-color-field label="Page text color" value={draft.page.textColor} onInput={(e) => patchSection("page", { textColor: e.currentTarget.value })} /></s-grid></s-stack>
         <s-stack gap="base"><s-heading>Show on Wishlist page</s-heading>{(Object.keys(pageToggleLabels) as Array<keyof typeof pageToggleLabels>).map((key) => <s-switch key={key} label={pageToggleLabels[key]} checked={draft.page[key]} onChange={(e) => patchSection("page", { [key]: readToggle(e.currentTarget.checked, draft.page[key]) } as Partial<WishlistSettingsDraft["page"]>)} />)}</s-stack>
       </s-grid></s-section>}
-      {activeTab === "text" && <s-section heading=""><s-paragraph>These default storefront labels can be localized per store. Additional locale records can be added when the storefront translation layer is implemented in Phase 2.</s-paragraph><s-grid gridTemplateColumns="repeat(2,minmax(0,1fr))" gap="base">{Object.entries(draft.text).map(([key, value]) => <s-text-field key={key} label={option(key)} value={String(value)} maxLength={120} onInput={(e) => patchSection("text", { [key]: e.currentTarget.value })} />)}</s-grid></s-section>}
         </div>
       </main>
     </div>
