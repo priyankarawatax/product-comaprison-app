@@ -32,9 +32,9 @@ export async function action({ request }: ActionFunctionArgs) {
 
 const readToggle = (value: unknown, current: boolean) => typeof value === "boolean" ? value : !current;
 const heart = (filled: boolean) => filled ? "♥" : "♡";
-function Switches({ values, onChange }: { values: Record<string, boolean>; onChange: (key: string, value: boolean) => void }) {
+function Switches({ values, onChange }: { values: Pick<WishlistSettingsDraft["general"], "showOnProductCards" | "showOnProductPages" | "allowGuests" | "allowCustomers" | "mergeAfterLogin">; onChange: (key: keyof typeof values, value: boolean) => void }) {
   const labels: Record<string, string> = { showOnProductCards: "Show Wishlist icon on product cards", showOnProductPages: "Show Wishlist icon on product detail pages", allowGuests: "Allow guest users to use Wishlist", allowCustomers: "Allow logged-in customers to save Wishlist items", mergeAfterLogin: "Merge guest Wishlist with customer Wishlist after login" };
-  return <s-stack gap="base">{Object.entries(values).map(([key, value]) => <s-switch key={key} label={labels[key]} checked={value} onChange={(event) => onChange(key, readToggle(event.currentTarget.checked, value))} />)}</s-stack>;
+  return <s-stack gap="base">{(Object.keys(values) as Array<keyof typeof values>).map((key) => <s-switch key={key} label={labels[key]} checked={values[key]} onChange={(event) => onChange(key, readToggle(event.currentTarget.checked, values[key]))} />)}</s-stack>;
 }
 
 export default function Wishlist() {
@@ -67,7 +67,7 @@ export default function Wishlist() {
       <main id="wishlist-settings-panel" className={styles.panel} role="tabpanel" aria-label={tabs.find((tab) => tab.id === activeTab)?.label}>
         <header className={styles.panelHeader}><p className={styles.panelEyebrow}>{tabDetails[activeTab].eyebrow}</p><h2 className={styles.panelTitle}>{tabs.find((tab) => tab.id === activeTab)?.label}</h2><p className={styles.panelDescription}>{tabDetails[activeTab].description}</p></header>
         <div className={styles.panelBody}>
-      {activeTab === "general" && <s-section heading=""><s-stack gap="base"><s-switch label="Enable Wishlist functionality" checked={draft.enabled} onChange={(e) => patch("enabled", readToggle(e.currentTarget.checked, draft.enabled))} /><Switches values={draft.general} onChange={(key, value) => patchSection("general", { [key]: value })} /></s-stack></s-section>}
+      {activeTab === "general" && <s-section heading=""><s-stack gap="base"><s-switch label="Enable Wishlist functionality" checked={draft.enabled} onChange={(e) => patch("enabled", readToggle(e.currentTarget.checked, draft.enabled))} /><Switches values={draft.general} onChange={(key, value) => patchSection("general", { [key]: value })} /><s-switch label="Show floating Wishlist icon" checked={draft.general.floatingWishlist} onChange={(e) => patchSection("general", { floatingWishlist: readToggle(e.currentTarget.checked, draft.general.floatingWishlist) })} /><s-select label="Floating icon position" value={draft.general.floatingWishlistPosition} onChange={(e) => patchSection("general", { floatingWishlistPosition: e.currentTarget.value as WishlistSettingsDraft["general"]["floatingWishlistPosition"] })}>{["left", "center", "right"].map((v) => <s-option key={v} value={v}>{option(v)}</s-option>)}</s-select></s-stack></s-section>}
       {activeTab === "button" && <s-section heading=""><s-stack gap="base"><s-grid gridTemplateColumns="repeat(2,minmax(0,1fr))" gap="base">
       <s-select label="Button type" value={draft.button.type} onChange={(e) => patchSection("button", { type: e.currentTarget.value as WishlistSettingsDraft["button"]["type"] })}>{["icon", "text", "icon_text"].map((v) => <s-option key={v} value={v}>{option(v)}</s-option>)}</s-select>
       <s-number-field label="Border radius" value={String(draft.button.borderRadius)} min={0} max={40} onChange={(e) => patchSection("button", { borderRadius: Number(e.currentTarget.value) })} />

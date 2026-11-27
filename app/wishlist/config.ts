@@ -1,6 +1,6 @@
 export type WishlistSettingsDraft = {
   enabled: boolean;
-  general: { showOnProductCards: boolean; showOnProductPages: boolean; allowGuests: boolean; allowCustomers: boolean; mergeAfterLogin: boolean };
+  general: { showOnProductCards: boolean; showOnProductPages: boolean; allowGuests: boolean; allowCustomers: boolean; mergeAfterLogin: boolean; floatingWishlist: boolean; floatingWishlistPosition: "left" | "center" | "right" };
   button: { type: "icon" | "text" | "icon_text"; iconStyle: "outline" | "filled"; defaultIconColor: string; activeIconColor: string; iconBackgroundColor: string; backgroundColor: string; textColor: string; borderColor: string; borderRadius: number; iconSize: number; padding: number; alignment: "left" | "center" | "right"; cardPosition: "top_left" | "top_right" | "bottom_left" | "bottom_right"; productPosition: "image_overlay" | "above_buy" | "below_buy" | "below_title" };
   page: { title: string; description: string; layout: "grid" | "list"; productsPerRow: 2 | 3 | 4 | 5; showImage: boolean; showTitle: boolean; showPrice: boolean; showAvailability: boolean; showAddToCart: boolean; showRemove: boolean; showContinueShopping: boolean; backgroundColor: string; textColor: string };
   text: { addToWishlist: string; addedToWishlist: string; removeFromWishlist: string; myWishlist: string; addToCart: string; continueShopping: string; outOfStock: string; emptyWishlist: string; addedSuccessfully: string; removedSuccessfully: string };
@@ -9,7 +9,7 @@ export type WishlistSettingsDraft = {
 
 export const defaultWishlistSettings: WishlistSettingsDraft = {
   enabled: false,
-  general: { showOnProductCards: true, showOnProductPages: true, allowGuests: true, allowCustomers: true, mergeAfterLogin: true },
+  general: { showOnProductCards: true, showOnProductPages: true, allowGuests: true, allowCustomers: true, mergeAfterLogin: true, floatingWishlist: false, floatingWishlistPosition: "right" },
   button: { type: "icon", iconStyle: "outline", defaultIconColor: "#FAFEFF", activeIconColor: "#FFFFFF", iconBackgroundColor: "#E71D1D", backgroundColor: "#FFFFFF", textColor: "#202223", borderColor: "#C9CCCF", borderRadius: 8, iconSize: 20, padding: 12, alignment: "center", cardPosition: "top_right", productPosition: "image_overlay" },
   page: { title: "My Wishlist", description: "", layout: "grid", productsPerRow: 4, showImage: true, showTitle: true, showPrice: true, showAvailability: true, showAddToCart: true, showRemove: true, showContinueShopping: true, backgroundColor: "#FFFFFF", textColor: "#202223" },
   text: { addToWishlist: "Add to Wishlist", addedToWishlist: "Added to Wishlist", removeFromWishlist: "Remove from Wishlist", myWishlist: "My Wishlist", addToCart: "Add to Cart", continueShopping: "Continue Shopping", outOfStock: "Out of Stock", emptyWishlist: "Your wishlist is empty", addedSuccessfully: "Product added successfully", removedSuccessfully: "Product removed successfully" },
@@ -23,7 +23,7 @@ const text = (v: unknown, max: number) => typeof v === "string" && v.trim().leng
 export function validateWishlistSettings(input: unknown): { data?: WishlistSettingsDraft; error?: string } {
   if (!object(input) || !object(input.general) || !object(input.button) || !object(input.page) || !object(input.text)) return { error: "Invalid Wishlist settings." };
   const v = input as unknown as WishlistSettingsDraft;
-  if (![v.enabled, v.setupGuideDismissed, ...Object.values(v.general)].every((x) => typeof x === "boolean")) return { error: "Invalid general settings." };
+  if (![v.enabled, v.setupGuideDismissed, v.general.showOnProductCards, v.general.showOnProductPages, v.general.allowGuests, v.general.allowCustomers, v.general.mergeAfterLogin, v.general.floatingWishlist].every((x) => typeof x === "boolean") || !oneOf(v.general.floatingWishlistPosition, ["left", "center", "right"] as const)) return { error: "Invalid general settings." };
   if (!oneOf(v.button.type, ["icon", "text", "icon_text"] as const) || !oneOf(v.button.iconStyle, ["outline", "filled"] as const) || !oneOf(v.button.alignment, ["left", "center", "right"] as const) || !oneOf(v.button.cardPosition, ["top_left", "top_right", "bottom_left", "bottom_right"] as const) || !oneOf(v.button.productPosition, ["image_overlay", "above_buy", "below_buy", "below_title"] as const)) return { error: "Invalid button option." };
   if (![v.button.defaultIconColor, v.button.activeIconColor, v.button.iconBackgroundColor, v.button.backgroundColor, v.button.textColor, v.button.borderColor, v.page.backgroundColor, v.page.textColor].every((x) => typeof x === "string" && color.test(x))) return { error: "Colors must use six-digit hex values." };
   if (!Number.isInteger(v.button.borderRadius) || v.button.borderRadius < 0 || v.button.borderRadius > 40 || !Number.isInteger(v.button.iconSize) || v.button.iconSize < 12 || v.button.iconSize > 48 || !Number.isInteger(v.button.padding) || v.button.padding < 4 || v.button.padding > 32) return { error: "Button sizing is outside the allowed range." };
