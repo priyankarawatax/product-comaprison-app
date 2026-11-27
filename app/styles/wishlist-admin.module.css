@@ -52,7 +52,7 @@
 }
 
 .menuButton[aria-current="page"] {
-  background: #123f33;
+  background: #005bd3;
   color: #fff;
 }
 
@@ -62,14 +62,14 @@
   height: 30px;
   place-items: center;
   border-radius: 8px;
-  background: #e5f0eb;
-  color: #174c3d;
+  background: #e8f1ff;
+  color: #0050b3;
   font-size: 17px;
   font-weight: 650;
 }
 
 .menuButton[aria-current="page"] .menuIcon {
-  background: #285847;
+  background: #2d74d7;
   color: #fff;
 }
 
@@ -96,7 +96,7 @@
 
 .panelEyebrow {
   margin: 0 0 7px;
-  color: #39735e;
+  color: #1f64b5;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: .1em;
