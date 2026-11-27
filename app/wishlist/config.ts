@@ -11,7 +11,7 @@ export const defaultWishlistSettings: WishlistSettingsDraft = {
   enabled: false,
   general: { showOnProductCards: true, showOnProductPages: true, allowGuests: true, allowCustomers: true, mergeAfterLogin: true },
   button: { type: "icon", iconStyle: "outline", defaultIconColor: "#202223", activeIconColor: "#D72C0D", backgroundColor: "#FFFFFF", textColor: "#202223", borderColor: "#C9CCCF", borderRadius: 8, iconSize: 20, padding: 12, alignment: "center", cardPosition: "top_right", productPosition: "image_overlay" },
-  page: { title: "My Wishlist", description: "Your favorite products, saved for later.", layout: "grid", productsPerRow: 4, showImage: true, showTitle: true, showPrice: true, showAvailability: true, showAddToCart: true, showRemove: true, showContinueShopping: true, backgroundColor: "#FFFFFF", textColor: "#202223" },
+  page: { title: "My Wishlist", description: "", layout: "grid", productsPerRow: 4, showImage: true, showTitle: true, showPrice: true, showAvailability: true, showAddToCart: true, showRemove: true, showContinueShopping: true, backgroundColor: "#FFFFFF", textColor: "#202223" },
   text: { addToWishlist: "Add to Wishlist", addedToWishlist: "Added to Wishlist", removeFromWishlist: "Remove from Wishlist", myWishlist: "My Wishlist", addToCart: "Add to Cart", continueShopping: "Continue Shopping", outOfStock: "Out of Stock", emptyWishlist: "Your wishlist is empty", addedSuccessfully: "Product added successfully", removedSuccessfully: "Product removed successfully" },
   setupGuideDismissed: false,
 };
