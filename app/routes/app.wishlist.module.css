@@ -1,0 +1,144 @@
+.settingsLayout {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  min-height: 520px;
+  margin-top: 1rem;
+  overflow: hidden;
+  border: 1px solid #e5e1db;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.sidebar {
+  padding: 24px 14px;
+  border-right: 1px solid #e5e1db;
+  background: #f8f7f4;
+}
+
+.sidebarLabel {
+  margin: 0 10px 16px;
+  color: #8a877f;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.menu {
+  display: grid;
+  gap: 6px;
+}
+
+.menuButton {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 14px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: #292a28;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease;
+}
+
+.menuButton:hover:not([aria-current="page"]) {
+  background: #eeece7;
+}
+
+.menuButton[aria-current="page"] {
+  background: #123f33;
+  color: #fff;
+}
+
+.menuIcon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 8px;
+  background: #e5f0eb;
+  color: #174c3d;
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.menuButton[aria-current="page"] .menuIcon {
+  background: #285847;
+  color: #fff;
+}
+
+.menuLabel {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.menuChevron {
+  justify-self: end;
+  font-size: 19px;
+  line-height: 1;
+}
+
+.panel {
+  min-width: 0;
+  padding: 30px 32px;
+}
+
+.panelHeader {
+  padding-bottom: 24px;
+  border-bottom: 1px solid #eeece8;
+}
+
+.panelEyebrow {
+  margin: 0 0 7px;
+  color: #39735e;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.panelTitle {
+  margin: 0;
+  color: #20211f;
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.panelDescription {
+  max-width: 660px;
+  margin: 7px 0 0;
+  color: #696861;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.panelBody {
+  padding-top: 22px;
+}
+
+@media (max-width: 760px) {
+  .settingsLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    padding: 16px;
+    border-right: 0;
+    border-bottom: 1px solid #e5e1db;
+  }
+
+  .menu {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .panel {
+    padding: 22px 18px;
+  }
+}
