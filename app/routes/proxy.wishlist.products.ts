@@ -10,20 +10,20 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const handles = [...new Set((query.get("handles") || "").split(",").filter(Boolean))];
     if ((!ids.length && !handles.length) || ids.length + handles.length > 50 || ids.some((id) => !productIdPattern.test(id)) || handles.some((handle) => !/^[a-z0-9][a-z0-9-]{0,254}$/.test(handle))) return response(400, { error: "Invalid products" });
     if (!auth.admin) return response(503, { error: "Product access unavailable" });
-    const productFields = "id title handle status featuredImage { url altText } priceRange { minVariantPrice { amount currencyCode } } compareAtPriceRange { minVariantPrice { amount currencyCode } } variants(first: 100) { nodes { id title price availableForSale } }";
+    const productFields = "id title handle status featuredImage { url altText } priceRange { minVariantPrice { amount currencyCode } } compareAtPriceRange { minVariantCompareAtPrice { amount currencyCode } } variants(first: 100) { nodes { id title price availableForSale } }";
     const queryText = ids.length
       ? `query WishlistProducts($ids: [ID!]!) { nodes(ids: $ids) { ... on Product { ${productFields} } } }`
       : `query WishlistProducts($query: String!) { products(first: 50, query: $query) { nodes { ${productFields} } } }`;
     const variables = ids.length ? { ids: ids.map((id) => `gid://shopify/Product/${id}`) } : { query: handles.map((handle) => `handle:${handle}`).join(" OR ") };
     const result = await auth.admin.graphql(queryText, { variables });
-    const json = await result.json() as { data?: { nodes?: Array<{ id: string; title: string; handle: string; status: string; featuredImage?: { url?: string; altText?: string } | null; priceRange?: { minVariantPrice?: { amount?: string; currencyCode?: string } }; compareAtPriceRange?: { minVariantPrice?: { amount?: string; currencyCode?: string } }; variants?: { nodes?: Array<{ id: string; title: string; price: string; availableForSale: boolean }> } | null } | null> }; errors?: unknown[] };
+    const json = await result.json() as { data?: { nodes?: Array<{ id: string; title: string; handle: string; status: string; featuredImage?: { url?: string; altText?: string } | null; priceRange?: { minVariantPrice?: { amount?: string; currencyCode?: string } }; compareAtPriceRange?: { minVariantCompareAtPrice?: { amount?: string; currencyCode?: string } }; variants?: { nodes?: Array<{ id: string; title: string; price: string; availableForSale: boolean }> } | null } | null> }; errors?: unknown[] };
     if (json.errors?.length || !json.data?.nodes) {
       console.error("Wishlist product query failed", JSON.stringify(json.errors || { missingNodes: true }));
       return response(503, { error: "Products unavailable" });
     }
     const products = (json.data.nodes || []).filter((p): p is NonNullable<typeof p> => p !== null && p.status === "ACTIVE").map((p) => {
       const variants = p.variants?.nodes || [];
-      return { id: p.id.split("/").pop(), handle: p.handle, title: p.title, url: `/products/${encodeURIComponent(p.handle)}`, image: p.featuredImage?.url || null, imageAlt: p.featuredImage?.altText || p.title, available: variants.some((variant) => variant.availableForSale), currencyCode: p.priceRange?.minVariantPrice?.currencyCode || "", price: p.priceRange?.minVariantPrice?.amount ? `${p.priceRange.minVariantPrice.amount} ${p.priceRange.minVariantPrice.currencyCode || ""}`.trim() : "", compareAtPrice: p.compareAtPriceRange?.minVariantPrice?.amount || null, variants: variants.map((variant) => ({ id: variant.id.split("/").pop(), title: variant.title, price: variant.price, available: variant.availableForSale })), variantId: variants.find((variant) => variant.availableForSale)?.id.split("/").pop() || null };
+      return { id: p.id.split("/").pop(), handle: p.handle, title: p.title, url: `/products/${encodeURIComponent(p.handle)}`, image: p.featuredImage?.url || null, imageAlt: p.featuredImage?.altText || p.title, available: variants.some((variant) => variant.availableForSale), currencyCode: p.priceRange?.minVariantPrice?.currencyCode || "", price: p.priceRange?.minVariantPrice?.amount ? `${p.priceRange.minVariantPrice.amount} ${p.priceRange.minVariantPrice.currencyCode || ""}`.trim() : "", compareAtPrice: p.compareAtPriceRange?.minVariantCompareAtPrice?.amount || null, variants: variants.map((variant) => ({ id: variant.id.split("/").pop(), title: variant.title, price: variant.price, available: variant.availableForSale })), variantId: variants.find((variant) => variant.availableForSale)?.id.split("/").pop() || null };
     });
     return response(200, { products });
   } catch (error) {
