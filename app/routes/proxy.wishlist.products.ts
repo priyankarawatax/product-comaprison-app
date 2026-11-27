@@ -17,11 +17,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const variables = ids.length ? { ids: ids.map((id) => `gid://shopify/Product/${id}`) } : { query: handles.map((handle) => `handle:${handle}`).join(" OR ") };
     const result = await auth.admin.graphql(queryText, { variables });
     const json = await result.json() as { data?: { nodes?: Array<{ id: string; title: string; handle: string; status: string; featuredImage?: { url?: string; altText?: string } | null; priceRange?: { minVariantPrice?: { amount?: string; currencyCode?: string } }; compareAtPriceRange?: { minVariantPrice?: { amount?: string; currencyCode?: string } }; variants?: { nodes?: Array<{ id: string; title: string; price: string; availableForSale: boolean }> } | null } | null> }; errors?: unknown[] };
-    if (json.errors?.length || !json.data?.nodes) return response(503, { error: "Products unavailable" });
+    if (json.errors?.length || !json.data?.nodes) {
+      console.error("Wishlist product query failed", JSON.stringify(json.errors || { missingNodes: true }));
+      return response(503, { error: "Products unavailable" });
+    }
     const products = (json.data.nodes || []).filter((p): p is NonNullable<typeof p> => p !== null && p.status === "ACTIVE").map((p) => {
       const variants = p.variants?.nodes || [];
       return { id: p.id.split("/").pop(), handle: p.handle, title: p.title, url: `/products/${encodeURIComponent(p.handle)}`, image: p.featuredImage?.url || null, imageAlt: p.featuredImage?.altText || p.title, available: variants.some((variant) => variant.availableForSale), currencyCode: p.priceRange?.minVariantPrice?.currencyCode || "", price: p.priceRange?.minVariantPrice?.amount ? `${p.priceRange.minVariantPrice.amount} ${p.priceRange.minVariantPrice.currencyCode || ""}`.trim() : "", compareAtPrice: p.compareAtPriceRange?.minVariantPrice?.amount || null, variants: variants.map((variant) => ({ id: variant.id.split("/").pop(), title: variant.title, price: variant.price, available: variant.availableForSale })), variantId: variants.find((variant) => variant.availableForSale)?.id.split("/").pop() || null };
     });
     return response(200, { products });
-  } catch { return response(503, { error: "Products unavailable" }); }
+  } catch (error) {
+    console.error("Wishlist products proxy failed", error);
+    return response(503, { error: "Products unavailable" });
+  }
 }
