@@ -1,7 +1,16 @@
 (() => {
+  let wishlistState = null;
+  const canUseWishlist = () => {
+    if (!wishlistState?.ready || !wishlistState.settings?.enabled) return false;
+    return wishlistState.root.dataset.customer === "1"
+      ? wishlistState.settings.general.allowCustomers
+      : wishlistState.settings.general.allowGuests;
+  };
+  const removeHeaderLink = () => document.querySelectorAll("[data-pickwise-wishlist-nav]").forEach((link) => link.remove());
   const addHeaderLink = () => {
     const root = document.querySelector("[data-pickwise-wishlist]");
-    if (!root) return;
+    if (!root || !wishlistState) return;
+    if (!canUseWishlist()) { removeHeaderLink(); return; }
     let link = document.querySelector("[data-pickwise-wishlist-nav]");
     const shopRoot = new URL(root.dataset.shopRoot || "/", location.href).pathname;
     const selectedUrl = root.dataset.pageUrl;
@@ -36,7 +45,8 @@
     icons.insertBefore(link, target || null);
     if (oldItem && !oldItem.contains(link) && !oldItem.children.length) oldItem.remove();
   };
-  document.addEventListener("pickwise-wishlist:disabled", () => document.querySelectorAll("[data-pickwise-wishlist-nav]").forEach((link) => link.remove()));
+  document.addEventListener("pickwise-wishlist:runtime-ready", (event) => { wishlistState = event.detail.state; addHeaderLink(); });
+  document.addEventListener("pickwise-wishlist:disabled", () => { wishlistState = null; removeHeaderLink(); });
   const observer = new MutationObserver(addHeaderLink);
   if (document.documentElement) observer.observe(document.documentElement, { childList: true, subtree: true });
   addHeaderLink();
